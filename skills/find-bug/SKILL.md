@@ -102,6 +102,8 @@ and tell the user what you have ruled out.
 - **Proof**: the regression test, and the suite result.
 - **Elsewhere**: other places with the same pattern, fixed or not.
 - **Follow-ups**: anything left, offering to capture it with `new-ticket`.
+  If the root cause was non-obvious and could bite again elsewhere, offer to
+  keep it with `save-learning`.
 
 ## Red flags
 

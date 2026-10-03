@@ -47,9 +47,10 @@ These skills share one convention: every piece of work is a folder under
 | `plan-page` | Generates a self-contained HTML page that explains a plan, stored in its folder. |
 
 ```
-idea ──► make-roadmap ──► make-plan ──► implement-plan ──► deep-review
+idea ──► make-roadmap ──► make-plan ──► implement-plan ──► deep-review ──► ship-work
   │        (optional)        ▲   │            │
-  └──► new-ticket ───────────┘   └─ plan-page └─► follow-ups ──► new-ticket
+  └──► new-ticket ───────────┘   └─ plan-page ├─► follow-ups ──► new-ticket
+                                              └─► lessons ─────► save-learning
 ```
 
 ### Quality
@@ -59,14 +60,18 @@ idea ──► make-roadmap ──► make-plan ──► implement-plan ──�
 | `deep-review` | Asks what to review, runs one reviewer subagent per theme (bugs, security, performance, tests, simplification, conventions, docs quality, outdated docs), and validates every finding before reporting. |
 | `find-bug` | Systematic debugging: reproduce, narrow down, root cause, fix with a regression test. |
 
-### Working in parallel
+### Research, delivery and learning
 
 | Skill | What it does |
 | --- | --- |
-| `concurrent-work` | Opt-in, only when you ask for it. Several agents on one repository: each works on its own branch and git worktree, and a shared board (`.git/agent-work/`) shows who is doing what, flags overlapping paths and stale sessions, and keeps branches integrating early. |
+| `research-topic` | Investigates a question without changing code, single agent or with parallel helper subagents as you choose, and answers with evidence and sources. Saves the report only if asked. |
+| `ship-work` | Commits, pushes or opens a pull request: you choose how far. Reviews what goes in, writes messages in the repository's style and the PR description from the plan. |
+| `save-learning` | Keeps a short, reusable lesson in `docs/learnings/`, citing the plan it came from by id. |
 
 In Claude Code every skill is also a slash command (`/make-plan`); in
-opencode the wrappers in `commands/` provide the same.
+opencode the wrappers in `commands/` provide the same. The exception is
+`plans-convention`, which the other skills load on their own and has no
+command.
 
 ## Quick install
 

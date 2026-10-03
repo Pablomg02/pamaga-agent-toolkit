@@ -149,6 +149,17 @@ class ValidateTest(unittest.TestCase):
         self.assertEqual(report.fixed, [str(wrapper)])
         self.assertIn("description: A new description. Use when testing.", wrapper.read_text())
 
+    def test_not_user_invocable_has_no_wrapper(self) -> None:
+        wrapper = self.repo.root / "commands" / "demo.md"
+        path = self.repo.root / "skills" / "demo" / "SKILL.md"
+        path.write_text(path.read_text().replace("---\n\n", "user-invocable: false\n---\n\n", 1))
+        self.assertIn("not user-invocable and must not have a wrapper", self.errors())
+        report = validate.validate(self.repo.root, fix=True)
+        self.assertFalse(wrapper.exists())
+        self.assertEqual(report.errors, [])
+        path.write_text(path.read_text().replace("user-invocable: false", "user-invocable: no"))
+        self.assertIn("user-invocable must be true or false", self.errors())
+
     def test_wrapper_for_unknown_skill(self) -> None:
         (self.repo.root / "commands" / "ghost.md").write_text(
             "---\ndescription: x\n---\n\nLoad and follow the `ghost` skill. $ARGUMENTS\n"

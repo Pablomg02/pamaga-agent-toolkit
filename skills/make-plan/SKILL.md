@@ -12,7 +12,8 @@ this skill, even if the change looks small; the deliverable is the plan.
 
 Load the `plans-convention` skill first: it defines the folder, the
 `plan.md` template and the script used below. `<plans-convention>` stands for
-the folder that skill was loaded from.
+the folder that skill was loaded from. The investigation briefs belong to the
+`research-topic` skill; `<research-topic>` stands for its folder.
 
 ## 1. Frame the request
 
@@ -37,9 +38,9 @@ parallel, each with a narrow question:
 
 | Helper | When | Brief |
 | --- | --- | --- |
-| Repository explorer | Existing code is involved: architecture, conventions, the code the change touches, test and build commands. | `references/repo-explorer.md` |
-| Researcher, `docs` mode | Libraries, APIs, versions, limits, known issues, migration guides. | `references/researcher.md` |
-| Researcher, `literature` mode | Reliable articles, standards, papers, established practice. | `references/researcher.md` |
+| Repository explorer | Existing code is involved: architecture, conventions, the code the change touches, test and build commands. | `<research-topic>/references/repo-explorer.md` |
+| Researcher, `docs` mode | Libraries, APIs, versions, limits, known issues, migration guides. | `<research-topic>/references/researcher.md` |
+| Researcher, `literature` mode | Reliable articles, standards, papers, established practice. | `<research-topic>/references/researcher.md` |
 
 Guidelines:
 

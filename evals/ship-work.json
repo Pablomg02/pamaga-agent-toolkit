@@ -1,0 +1,52 @@
+{
+  "skill_name": "ship-work",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Ship this.",
+      "expected_output": "The agent reviews status and diff, asks how far to go (commit only, commit and push, or PR) with commit only as default, lists what will be included, and commits in the repository's style.",
+      "files": [],
+      "expectations": [
+        "Asks whether to commit only, push, or open a PR before doing any of them",
+        "Reads git status, the diff and recent log before committing",
+        "Lists the files to be committed and flags anything suspicious (secrets, build output, unrelated changes)",
+        "Stages files by name, not with git add -A",
+        "Does not push when the user chose commit only"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Commit, push and open a draft PR for plan 0042.",
+      "expected_output": "On main, the agent proposes a branch named after the work, commits referencing 0042, pushes with upstream, and opens a draft PR whose description is built from plan 0042 and the checks that actually ran.",
+      "files": [],
+      "expectations": [
+        "Does not ask how far to go, since the user said it",
+        "Creates a branch instead of pushing to main",
+        "The commit message references 0042",
+        "Opens the PR as a draft with gh, or gives the compare URL and text if gh is unavailable",
+        "The PR description includes Summary, How it was verified and Plan 0042",
+        "Never force-pushes or uses --no-verify"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Push it. (The push is rejected because the remote branch has new commits.)",
+      "expected_output": "The agent fetches, explains the situation and asks before rebasing or merging; it does not force-push.",
+      "files": [],
+      "expectations": [
+        "Does not force-push",
+        "Asks the user before rebasing or merging"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "commit these changes", "should_trigger": true},
+    {"query": "push it and open a PR", "should_trigger": true},
+    {"query": "wrap this up and ship it", "should_trigger": true},
+    {"query": "make a draft pull request for this branch", "should_trigger": true},
+    {"query": "review my changes before I commit", "should_trigger": false},
+    {"query": "implement plan 0042", "should_trigger": false},
+    {"query": "explain what git rebase does", "should_trigger": false},
+    {"query": "why did my last commit break the build?", "should_trigger": false}
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "skill_name": "save-learning",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Save what we learned about the SQLite WAL issue from plan 0042.",
+      "expected_output": "The agent checks the lesson against the bar, searches docs/learnings for duplicates, writes a one-screen note from the template citing 0042 by id, adds a line to docs/learnings/README.md, and links the note from plan 0042.",
+      "files": [],
+      "expectations": [
+        "Searches docs/learnings for an existing note on the topic first",
+        "Creates docs/learnings/<slug>.md with a slug describing the lesson, not the task",
+        "The title states the lesson as a claim",
+        "Includes Context, Lesson, Why and Applies when",
+        "Frontmatter source lists \"0042\"; the plan is cited by id, not by path",
+        "Adds one line to docs/learnings/README.md, newest first",
+        "Adds a Learning line to plan 0042"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Save a learning: we renamed the variable foo to bar.",
+      "expected_output": "The agent explains that this is not a reusable, non-obvious lesson and does not write a note.",
+      "files": [],
+      "expectations": [
+        "Does not create a file in docs/learnings",
+        "Says in one line why it does not meet the bar"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Note this lesson: the date parser must always be called with tz=UTC in this project.",
+      "expected_output": "The agent points out that this is a project rule for every task and offers to add it to AGENTS.md or CLAUDE.md instead.",
+      "files": [],
+      "expectations": [
+        "Suggests the project's agent instructions file instead of a learning note",
+        "Does not write the note without the user's agreement"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "save this learning", "should_trigger": true},
+    {"query": "write down what we learned from this bug so we don't fall for it again", "should_trigger": true},
+    {"query": "add that trick to our learnings", "should_trigger": true},
+    {"query": "guarda este aprendizaje en docs", "should_trigger": true},
+    {"query": "add this bug to the backlog", "should_trigger": false},
+    {"query": "update the README with the new install steps", "should_trigger": false},
+    {"query": "explain how SQLite WAL mode works", "should_trigger": false},
+    {"query": "commit the changes", "should_trigger": false}
+  ]
+}

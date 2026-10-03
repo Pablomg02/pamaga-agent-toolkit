@@ -151,6 +151,9 @@ or mark the task done.
    roadmap's *Derived plans* table and add a line to its *Implementation* log.
 4. Apply the generated page rule if there is a `plan.html`.
 5. Run `plans.py validate`.
+6. Offer the next steps, without starting them: `ship-work` to commit, push
+   or open a pull request, and `save-learning` if the work taught something
+   non-obvious worth keeping.
 
 ## Ledger format
 

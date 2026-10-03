@@ -24,7 +24,7 @@ NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 NAME_MAX = 64
 DESCRIPTION_MAX = 1024
 SKILL_MAX_LINES = 500
-SKILL_KEYS = {"name", "description", "license", "compatibility", "metadata"}
+SKILL_KEYS = {"name", "description", "license", "compatibility", "metadata", "user-invocable"}
 BUNDLED_DIRS = ("references", "scripts", "assets", "templates")
 BUNDLED_REF_RE = re.compile(r"`((?:%s)/[^`\s]+)`" % "|".join(BUNDLED_DIRS))
 
@@ -94,23 +94,27 @@ def unquote(value: str) -> str:
     return value
 
 
-def check_skill(skill_dir: Path, report: Report) -> str | None:
-    """Validate one skill folder; return its description if it is usable."""
+def check_skill(skill_dir: Path, report: Report) -> tuple[str | None, bool]:
+    """Validate one skill folder; return (description if usable, user-invocable)."""
     skill_md = skill_dir / "SKILL.md"
     if not skill_md.is_file():
         report.error(skill_dir, "missing SKILL.md")
-        return None
+        return None, True
     text = skill_md.read_text(encoding="utf-8")
     parsed = split_frontmatter(text)
     if parsed is None:
         report.error(skill_md, "missing or unterminated frontmatter")
-        return None
+        return None, True
     meta, body = parsed
 
     if "__invalid__" in meta:
         report.error(skill_md, f"unparseable frontmatter line: {meta['__invalid__']!r}")
     for key in sorted(set(meta) - SKILL_KEYS - {"__invalid__"}):
         report.error(skill_md, f"frontmatter key {key!r} is not portable; allowed: {sorted(SKILL_KEYS)}")
+
+    invocable = unquote(meta.get("user-invocable", "true"))
+    if invocable not in ("true", "false"):
+        report.error(skill_md, f"user-invocable must be true or false, not {invocable!r}")
 
     name = unquote(meta.get("name", ""))
     if not name:
@@ -153,7 +157,7 @@ def check_skill(skill_dir: Path, report: Report) -> str | None:
                 if relative not in referenced:
                     report.warning(path, "bundled file not referenced from SKILL.md")
 
-    return description or None
+    return description or None, invocable != "false"
 
 
 def check_wrapper(repo: Path, name: str, description: str, fix: bool, report: Report) -> None:
@@ -169,6 +173,18 @@ def check_wrapper(repo: Path, name: str, description: str, fix: bool, report: Re
         report.error(wrapper, "out of sync with the skill; run scripts/validate.py --fix")
     else:
         report.error(wrapper, f"missing opencode wrapper for skill {name!r}; run scripts/validate.py --fix")
+
+
+def check_no_wrapper(repo: Path, name: str, fix: bool, report: Report) -> None:
+    """A skill with user-invocable: false is loaded by other skills, not typed."""
+    wrapper = repo / "commands" / f"{name}.md"
+    if not wrapper.is_file():
+        return
+    if fix:
+        wrapper.unlink()
+        report.fixed.append(f"{wrapper} (removed)")
+    else:
+        report.error(wrapper, f"skill {name!r} is not user-invocable and must not have a wrapper; run scripts/validate.py --fix")
 
 
 def check_commands(repo: Path, skill_names: set[str], report: Report) -> None:
@@ -277,9 +293,11 @@ def validate(repo: Path, fix: bool = False) -> Report:
     skills_dir = repo / "skills"
     skill_names: set[str] = set()
     for skill_dir in sorted(p for p in skills_dir.iterdir() if p.is_dir()) if skills_dir.is_dir() else []:
-        description = check_skill(skill_dir, report)
+        description, invocable = check_skill(skill_dir, report)
         skill_names.add(skill_dir.name)
-        if description:
+        if not invocable:
+            check_no_wrapper(repo, skill_dir.name, fix, report)
+        elif description:
             check_wrapper(repo, skill_dir.name, description, fix, report)
     check_commands(repo, skill_names, report)
     check_agents(repo, report)

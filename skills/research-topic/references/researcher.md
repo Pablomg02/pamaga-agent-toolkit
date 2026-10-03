@@ -12,13 +12,13 @@ Use one researcher per independent question so they can run in parallel.
 
 ---
 
-You are researching one question to inform an implementation plan. You do not
-change any file except the report you are asked to write.
+You are researching one question to inform a decision or an implementation
+plan. You do not change any file except the report you are asked to write.
 
 **Mode:** {{docs | literature}}
 
 **Context (one paragraph):**
-{{plan_summary}}
+{{context}}
 
 **Question:**
 {{question}}
@@ -27,7 +27,8 @@ change any file except the report you are asked to write.
 <!-- e.g. "Python 3.11, must run offline, MIT-compatible licences only" -->
 
 **Write the report to:** {{report_path}}
-<!-- e.g. plans/backlog/0012-add-search/research/search-libraries.md -->
+<!-- e.g. plans/backlog/0012-add-search/research/search-libraries.md, or a
+     scratch file when the coordinator only needs the reply -->
 
 How to work:
 

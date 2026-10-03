@@ -14,6 +14,10 @@ files work in opencode and Claude Code.
 - Frontmatter keeps the portable minimum: `name` and `description`. The
   description covers both what the skill does and when to use it, front-loading
   the words the user is likely to type.
+- A skill that only other skills load (such as `plans-convention`) adds
+  `user-invocable: false`. Claude Code then hides it from the `/` menu, the
+  validator requires that it has no opencode wrapper, and opencode ignores
+  the field.
 - Body: plain Markdown, model-agnostic and tool-agnostic ("run the tests", not
   "use the Bash tool"), so it works with any model or harness.
 - Skills are model-invocable: the agent loads them on its own when the
@@ -70,8 +74,9 @@ pass.
 
 - **Claude Code**: the skill itself is registered as `/name`. Nothing else is
   needed.
-- **opencode**: skills are model-invoked only, so every skill gets a thin
-  wrapper at `commands/<name>.md` so the user can also run `/name`.
+- **opencode**: skills are model-invoked only, so every user-invocable skill
+  gets a thin wrapper at `commands/<name>.md` so the user can also run
+  `/name`.
 
 Wrapper template:
 

@@ -1,6 +1,8 @@
 """Derive toolkit and item versions from git.
 
-Releases are the CI tags of the form ``YYYY.MM.DD.N``; older tags such as
+Releases are the CI tags of the form ``YYYY.MM.DD.N`` (``main``); builds of
+``dev`` are prereleases tagged ``YYYY.MM.DD.N-dev``. Both share one daily
+counter, so the numeric key orders them chronologically. Older tags such as
 ``v0.1.0`` are ignored. Nothing here raises on a git problem: every
 function degrades to ``None``/``unknown`` when git is missing, the folder
 is not a repository, a command fails or times out.
@@ -17,25 +19,34 @@ from dataclasses import dataclass
 from pathlib import Path
 
 RELEASE_TAG_RE = re.compile(r"^\d{4}\.\d{2}\.\d{2}\.\d+$")
+DEV_TAG_RE = re.compile(r"^\d{4}\.\d{2}\.\d{2}\.\d+-dev$")
+DEV_BRANCH = "dev"
+
+
+def is_dev_tag(tag: str | None) -> bool:
+    return bool(tag and DEV_TAG_RE.match(tag))
 
 
 def release_key(tag: str) -> tuple[int, int, int, int]:
-    """Sortable key of a release tag; 2026.10.03.10 sorts after 2026.10.03.9."""
-    year, month, day, count = tag.split(".")
+    """Sortable key of a release or dev tag; 2026.10.03.10 sorts after 2026.10.03.9."""
+    year, month, day, count = tag.removesuffix("-dev").split(".")
     return (int(year), int(month), int(day), int(count))
 
 
 @dataclass(frozen=True)
 class ToolkitVersion:
-    tag: str | None      # newest release tag reachable from HEAD
+    tag: str | None      # newest release tag reachable from HEAD (dev tags too on a dev clone)
     ahead: int           # commits since that tag
     dirty: bool          # uncommitted changes in the clone
     commit: str | None   # short sha of HEAD
+    dev: bool = False    # the clone follows the development channel (dev branch or a dev tag)
 
     @property
     def label(self) -> str:
         if self.tag:
             label = self.tag + (f"+{self.ahead}" if self.ahead else "")
+            if self.dev and not is_dev_tag(self.tag):
+                label += " (dev)"
         elif self.commit:
             label = f"dev ({self.commit})"
         else:
@@ -64,14 +75,15 @@ def toolkit_version(repo: Path) -> ToolkitVersion:
     commit = _short_sha(repo)
     if commit is None:
         return ToolkitVersion(tag=None, ahead=0, dirty=False, commit=None)
-    tag = _newest_release_reachable(repo)
+    dev = _is_dev_clone(repo)
+    tag = _newest_release_reachable(repo, include_dev=dev)
     ahead = 0
     if tag:
         count = _git(repo, "rev-list", "--count", f"{tag}..HEAD")
         if count and count.strip().isdigit():
             ahead = int(count.strip())
     dirty = bool((_git(repo, "status", "--porcelain") or "").strip())
-    return ToolkitVersion(tag=tag, ahead=ahead, dirty=dirty, commit=commit)
+    return ToolkitVersion(tag=tag, ahead=ahead, dirty=dirty, commit=commit, dev=dev)
 
 
 def item_version(repo: Path, rel_path: str) -> ItemVersion:
@@ -96,17 +108,36 @@ def clear_cache() -> None:
 
 
 def latest_remote_release(repo: Path, timeout: float = 3.0) -> str | None:
-    """Newest release tag on ``origin``, or None (no remote, no git, no network)."""
-    output = _git(repo, "ls-remote", "--tags", "--refs", "origin", timeout=timeout)
-    tags = []
-    for line in (output or "").splitlines():
-        parts = line.split("\t")
-        if len(parts) != 2 or not parts[1].startswith("refs/tags/"):
-            continue
-        tag = parts[1][len("refs/tags/"):]
-        if RELEASE_TAG_RE.match(tag):
-            tags.append(tag)
-    return max(tags, key=release_key) if tags else None
+    """Newest stable release tag on ``origin``, or None (no remote, no git, no network)."""
+    return _latest_remote(repo, RELEASE_TAG_RE, timeout)
+
+
+def latest_remote_dev_release(repo: Path, timeout: float = 3.0) -> str | None:
+    """Newest ``-dev`` prerelease tag on ``origin``, or None."""
+    return _latest_remote(repo, DEV_TAG_RE, timeout)
+
+
+def channel_notice(version: ToolkitVersion, stable: str | None, dev: str | None = None) -> list[str]:
+    """Lines telling the user how their clone relates to what ``origin`` offers.
+
+    A stable clone only hears about newer stable releases: dev builds are never
+    mentioned to it. A dev clone is always told it is a development build,
+    which stable release to prefer, and whether a newer dev build exists.
+    """
+    base = release_key(version.tag) if version.tag else None
+    newer_stable = bool(stable and (base is None or release_key(stable) > base))
+    if not version.dev:
+        if newer_stable:
+            return [f"A newer release is available: {stable} (this clone has {version.tag or 'no release'})."]
+        return []
+    lines = ["This clone is a development build; releases from main are the stable ones."]
+    if newer_stable:
+        lines.append(f"A newer stable release exists: {stable}. Go back to it with: git switch main && git pull")
+    elif stable:
+        lines.append(f"The latest stable release is {stable}.")
+    if dev and (base is None or release_key(dev) > base):
+        lines.append(f"A newer development build is available: {dev}. Update with: python3 scripts/install.py --update --pull")
+    return lines
 
 
 def pull_status(repo: Path) -> tuple[bool, str]:
@@ -165,9 +196,34 @@ def _short_sha(repo: Path) -> str | None:
     return output.strip() or None
 
 
-def _newest_release_reachable(repo: Path) -> str | None:
+def _latest_remote(repo: Path, pattern: re.Pattern, timeout: float) -> str | None:
+    output = _git(repo, "ls-remote", "--tags", "--refs", "origin", timeout=timeout)
+    tags = []
+    for line in (output or "").splitlines():
+        parts = line.split("\t")
+        if len(parts) != 2 or not parts[1].startswith("refs/tags/"):
+            continue
+        tag = parts[1][len("refs/tags/"):]
+        if pattern.match(tag):
+            tags.append(tag)
+    return max(tags, key=release_key) if tags else None
+
+
+def _is_dev_clone(repo: Path) -> bool:
+    """On the dev branch, or detached at a dev tag."""
+    branch = (_git(repo, "rev-parse", "--abbrev-ref", "HEAD") or "").strip()
+    if branch == "HEAD":
+        return any(is_dev_tag(t.strip()) for t in (_git(repo, "tag", "--points-at", "HEAD") or "").splitlines())
+    return branch == DEV_BRANCH
+
+
+def _newest_release_reachable(repo: Path, include_dev: bool = False) -> str | None:
     output = _git(repo, "tag", "--merged", "HEAD")
-    tags = [line.strip() for line in (output or "").splitlines() if RELEASE_TAG_RE.match(line.strip())]
+    tags = [
+        line.strip()
+        for line in (output or "").splitlines()
+        if RELEASE_TAG_RE.match(line.strip()) or (include_dev and DEV_TAG_RE.match(line.strip()))
+    ]
     return max(tags, key=release_key) if tags else None
 
 

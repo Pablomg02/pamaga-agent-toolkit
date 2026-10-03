@@ -145,7 +145,7 @@ class InstallCliTest(CliTest):
         label = result.stdout.strip()
         self.assertTrue(label, "empty --version output")
         self.assertTrue(
-            re.match(r"^\d{4}\.\d{2}\.\d{2}\.\d+(\+\d+)?( \(modified\))?$", label) or label.startswith("dev ("),
+            re.match(r"^\d{4}\.\d{2}\.\d{2}\.\d+(-dev)?(\+\d+)?( \(dev\))?( \(modified\))?$", label) or label.startswith("dev ("),
             label,
         )
 

@@ -389,6 +389,24 @@ class TuiTest(unittest.TestCase):
         self.assertEqual(self.app.remote, "2099.01.01.1")
         self.assertIn("2099.01.01.1", self.text())
 
+    def test_dev_channel_shows_badge_and_notice(self) -> None:
+        self.assertNotIn("[dev]", self.app._header(120))
+        context = self.world.context()
+        context.toolkit_version = ToolkitVersion(
+            tag="2026.10.03.2-dev", ahead=0, dirty=False, commit="18031b4", dev=True)
+        context.remote_dev_release = lambda: "2099.02.01.9-dev"
+        app = App(context, self.style)
+        deadline = time.time() + 5
+        while app.remote is None and time.time() < deadline:
+            app.tick()
+            time.sleep(0.005)
+        self.assertIn("[dev]", app._header(120))
+        self.assertIn("Development build", "\n".join(app.render(120, 30)))
+        app.handle("U")
+        dialog = "\n".join(app.dialog["lines"])
+        self.assertIn("newer stable release exists: 2099.01.01.1", dialog)
+        self.assertIn("newer development build is available: 2099.02.01.9-dev", dialog)
+
     def test_pull_refused_shows_reason_and_does_not_pull(self) -> None:
         self.app.handle("U")
         self.assertIsNotNone(self.app.dialog)

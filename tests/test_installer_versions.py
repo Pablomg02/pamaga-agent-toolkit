@@ -217,6 +217,69 @@ class VersionsTest(unittest.TestCase):
         self.git.run("push", "--quiet", "origin", "--tags")
         self.assertEqual(versions.latest_remote_release(self.repo_dir, timeout=10), "2026.10.03.2")
 
+    def test_dev_tags_share_the_daily_counter_and_sort_with_stable(self) -> None:
+        self.assertEqual(versions.release_key("2026.10.03.4-dev"), (2026, 10, 3, 4))
+        self.assertTrue(versions.is_dev_tag("2026.10.03.4-dev"))
+        self.assertFalse(versions.is_dev_tag("2026.10.03.4"))
+        self.assertGreater(versions.release_key("2026.10.03.4-dev"), versions.release_key("2026.10.03.3"))
+
+    def test_stable_clone_ignores_dev_tags(self) -> None:
+        self.build_tagged()
+        self.git.commit("dev work", "f.txt", "three")
+        self.git.tag("2026.10.04.3-dev")
+        version = versions.toolkit_version(self.repo_dir)
+        self.assertFalse(version.dev)
+        self.assertEqual(version.tag, "2026.10.03.2")
+
+    def test_dev_branch_reports_dev_tag_and_label(self) -> None:
+        self.build_tagged()
+        self.git.run("switch", "--quiet", "-c", "dev")
+        self.git.commit("dev work", "f.txt", "three")
+        self.git.tag("2026.10.04.3-dev")
+        self.git.commit("more dev work", "f.txt", "four")
+        version = versions.toolkit_version(self.repo_dir)
+        self.assertTrue(version.dev)
+        self.assertEqual(version.tag, "2026.10.04.3-dev")
+        self.assertEqual(version.label, "2026.10.04.3-dev+1")
+
+    def test_dev_branch_without_dev_tag_is_marked_dev(self) -> None:
+        self.build_tagged()
+        self.git.run("switch", "--quiet", "-c", "dev")
+        self.assertEqual(versions.toolkit_version(self.repo_dir).label, "2026.10.03.2 (dev)")
+
+    def test_items_ignore_dev_tags(self) -> None:
+        demo_commit = self.build_tagged()
+        self.git.run("switch", "--quiet", "-c", "dev")
+        self.git.commit("touch demo", SKILL, "v2\n")
+        self.git.tag("2026.10.05.4-dev")
+        self.assertEqual(versions.item_version(self.repo_dir, "skills/demo").release, None)
+        versions.clear_cache()
+        self.assertEqual(versions.item_version(self.repo_dir, "skills/demo").commit != demo_commit, True)
+
+    def test_remote_discovery_separates_channels(self) -> None:
+        self.build_tagged()
+        self.git.tag("2026.10.04.3-dev")
+        origin = self.root / "origin.git"
+        subprocess.run([GIT, "init", "--bare", "--quiet", str(origin)], capture_output=True, check=True)
+        self.git.run("remote", "add", "origin", str(origin))
+        self.git.run("push", "--quiet", "origin", "HEAD:refs/heads/main")
+        self.git.run("push", "--quiet", "origin", "--tags")
+        self.assertEqual(versions.latest_remote_release(self.repo_dir, timeout=10), "2026.10.03.2")
+        self.assertEqual(versions.latest_remote_dev_release(self.repo_dir, timeout=10), "2026.10.04.3-dev")
+
+    def test_channel_notice(self) -> None:
+        tv = versions.ToolkitVersion
+        stable = tv(tag="2026.10.03.2", ahead=0, dirty=False, commit="abc")
+        self.assertEqual(versions.channel_notice(stable, "2026.10.03.2", "2026.10.09.5-dev"), [])
+        self.assertEqual(len(versions.channel_notice(stable, "2026.10.04.3")), 1)
+        dev = tv(tag="2026.10.04.3-dev", ahead=0, dirty=False, commit="abc", dev=True)
+        text = "\n".join(versions.channel_notice(dev, "2026.10.03.2", None))
+        self.assertIn("development build", text)
+        self.assertIn("latest stable release is 2026.10.03.2", text)
+        text = "\n".join(versions.channel_notice(dev, "2026.10.05.4", "2026.10.06.5-dev"))
+        self.assertIn("newer stable release exists: 2026.10.05.4", text)
+        self.assertIn("newer development build is available: 2026.10.06.5-dev", text)
+
     def test_pull_status_without_upstream(self) -> None:
         self.build_tagged()
         can_pull, reason = versions.pull_status(self.repo_dir)

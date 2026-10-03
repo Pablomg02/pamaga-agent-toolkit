@@ -27,7 +27,7 @@ from installer.actions import Action, Result, Selection, plan_actions
 from installer.catalog import STAGE_ORDER, Catalog, Item
 from installer.harnesses import Harness
 from installer.state import Installed, Status
-from installer.versions import ItemVersion, ToolkitVersion, release_key
+from installer.versions import ItemVersion, ToolkitVersion, channel_notice, release_key
 
 from . import logo
 from .style import THEME, Style, display_width, pad, stage_colour, wrap
@@ -126,6 +126,7 @@ class AppContext:
     pull_status: Callable[[], Tuple[bool, str]]
     pull: Callable[[], Tuple[bool, str]]
     reload: Callable[[], "AppContext"]
+    remote_dev_release: Callable[[], Optional[str]] = lambda: None
 
 
 class App:
@@ -180,6 +181,7 @@ class App:
         self._worker: Optional[threading.Thread] = None
         # Remote release check
         self.remote: Optional[str] = None
+        self.remote_dev: Optional[str] = None
         self._remote_thread: Optional[threading.Thread] = None
         self._remote_box: List[Optional[str]] = []
 
@@ -253,13 +255,17 @@ class App:
         return plan_actions(self.ctx.catalog, self._selected_harnesses(), self.scans,
                             self._selection(force), self.ctx.item_version)
 
-    def _update_available(self) -> bool:
+    def _update_target(self) -> Optional[str]:
+        """Newest remote tag worth moving to: stable, or a newer dev build on a dev clone."""
         tag = self.ctx.toolkit_version.tag
-        if not self.remote:
-            return False
-        if not tag:
-            return True
-        return release_key(self.remote) > release_key(tag)
+        candidates = [self.remote]
+        if self.ctx.toolkit_version.dev:
+            candidates.append(self.remote_dev)
+        newer = [c for c in candidates if c and (not tag or release_key(c) > release_key(tag))]
+        return max(newer, key=release_key) if newer else None
+
+    def _update_available(self) -> bool:
+        return self._update_target() is not None
 
     # -- input ---------------------------------------------------------------
 
@@ -318,7 +324,9 @@ class App:
     def _open_pull_dialog(self) -> None:
         can, reason = self.ctx.pull_status()
         lines = [reason]
-        if self.remote:
+        if self.ctx.toolkit_version.dev:
+            lines = channel_notice(self.ctx.toolkit_version, self.remote, self.remote_dev) + lines
+        elif self.remote:
             lines.insert(0, f"Newest release: {self.remote} (you have {self.ctx.toolkit_version.label}).")
         if can:
             lines.append("Run git pull --ff-only now?")
@@ -339,6 +347,7 @@ class App:
         self.agents &= {item.name for item in self.ctx.catalog.agents}
         self._load_harnesses()
         self.remote = None
+        self.remote_dev = None
         self.notice = f"Clone updated to {self.ctx.toolkit_version.label}; press u to select updates."
 
     def _handle_filter(self, key: str) -> None:
@@ -648,6 +657,8 @@ class App:
         if self._remote_thread is None:
             def check() -> None:
                 try:
+                    if self.ctx.toolkit_version.dev:
+                        self.remote_dev = self.ctx.remote_dev_release()
                     self._remote_box.append(self.ctx.remote_release())
                 except Exception:
                     self._remote_box.append(None)
@@ -712,8 +723,10 @@ class App:
         if self.scope == "project":
             left += style.fg(f"  project: {self.ctx.project}", THEME["muted"])
         right = self.ctx.toolkit_version.label
+        if self.ctx.toolkit_version.dev:
+            right += " " + style.bold(style.fg("[dev]", THEME["check"]))
         if self._update_available():
-            right += f" {style.glyph('dot')} " + style.fg(f"{style.glyph('outdated')} {self.remote} (U)",
+            right += f" {style.glyph('dot')} " + style.fg(f"{style.glyph('outdated')} {self._update_target()} (U)",
                                                          THEME["check"])
         right += " "
         gap = width - display_width(left) - display_width(right)
@@ -787,8 +800,11 @@ class App:
             "",
             "Version " + style.bold(self.ctx.toolkit_version.label),
         ]
+        if self.ctx.toolkit_version.dev:
+            info.append(style.fg("Development build: the stable release comes from main"
+                                 + (f" ({self.remote})." if self.remote else "."), THEME["check"]))
         if self._update_available():
-            info.append(style.fg(f"{style.glyph('outdated')} {self.remote} available "
+            info.append(style.fg(f"{style.glyph('outdated')} {self._update_target()} available "
                                  f"{self._dash()} press U to update the clone", THEME["check"]))
         info.append("")
         for harness in self.harnesses:

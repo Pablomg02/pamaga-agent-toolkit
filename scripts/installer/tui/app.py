@@ -1167,10 +1167,11 @@ class App:
                 counts[action.op] = counts.get(action.op, 0) + 1
             summary = ", ".join(f"{n} to {op}" for op, n in sorted(counts.items()))
             lines.append(style.bold(f"{len(changes)} change(s): ") + summary)
-        skills_in = {a.harness_id for a in self.actions if a.kind == "skill" and a.op != "remove"}
-        if {"opencode", "claude"} <= skills_in:
-            lines.append(style.fg("opencode also reads ~/.claude/skills; keep skill names distinct "
-                                  "or install only the harnesses you use.", THEME["muted"]))
+        if {"opencode", "claude"} <= self.checked and any(
+            a.kind == "skill" and a.harness_id == "claude" and a.op != "remove" for a in self.actions
+        ):
+            lines.append(style.fg("opencode also reads ~/.claude/skills, so the skills go only "
+                                  "there (no duplicates).", THEME["muted"]))
         lines.append("")
         header_count = len(lines)
         body = []

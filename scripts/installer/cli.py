@@ -65,10 +65,9 @@ STATUS_WORDS = {
     Status.ORPHANED: "orphaned",
     Status.NOT_INSTALLED: "-",
 }
-OPENCODE_NOTE = (
-    "Note: opencode reads skills from all installed locations. If you",
-    "install several harnesses, keep skill names distinct or install",
-    "only the harnesses you actually use.",
+SHARED_SKILLS_NOTE = (
+    "Note: opencode also reads the skills installed for Claude Code, so with",
+    "both selected the skills go only to ~/.claude/skills (no duplicates).",
 )
 
 
@@ -189,13 +188,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.uninstall:
         return 1 if failed else 0
 
-    with_skills = {a.harness_id for a in actions if a.kind == "skill" and a.op not in ("remove", "skip")}
-    if {"opencode", "claude"} <= with_skills and any(
-        a.kind == "skill" and a.op not in ("keep", "skip") for a in actions
+    planned = {a.harness_id for a in actions}
+    if {"opencode", "claude"} <= planned and any(
+        a.kind == "skill" and a.harness_id == "claude" and a.op not in ("keep", "skip", "remove")
+        for a in actions
     ):
         print()
-        for line in OPENCODE_NOTE:
+        for line in SHARED_SKILLS_NOTE:
             print(line)
+        if any(a.kind == "skill" and a.harness_id == "opencode" and a.op == "keep" for a in actions):
+            print("Older copies in the opencode skills dir are kept; run with --prune to remove them.")
     changed = [a for a in actions if a.op not in ("keep", "skip")]
     print()
     skipped = sum(1 for a in actions if a.op == "skip")

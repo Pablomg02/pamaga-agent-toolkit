@@ -493,7 +493,7 @@ class PlanningTableTest(ToolkitFixture):
         self.assertEqual({a.harness_id for a in commands}, {"opencode"})
         self.assertTrue(all(a.op == "install" for a in commands))
         skills = {(a.harness_id, a.name) for a in actions if a.kind == "skill"}
-        self.assertEqual(skills, {("opencode", "alpha"), ("claude", "alpha")})
+        self.assertEqual(skills, {("claude", "alpha")})
 
     def test_no_wrappers_when_commands_are_off(self) -> None:
         actions = self.plan(self.select(skills={"alpha"}, commands=False))
@@ -513,21 +513,35 @@ class PlanningTableTest(ToolkitFixture):
     def test_force_key_is_per_harness(self) -> None:
         scans = {
             "opencode": {
-                "skill/alpha": self.placed(self.opencode, self.alpha, Status.MODIFIED, mode="copy")
+                "agent/helper": self.placed(self.opencode, self.helper, Status.MODIFIED, mode="copy")
             },
             "claude": {
-                "skill/alpha": self.placed(self.claude, self.alpha, Status.MODIFIED, mode="copy")
+                "agent/helper": self.placed(self.claude, self.helper, Status.MODIFIED, mode="copy")
             },
         }
         selection = self.select(
             harnesses=("opencode", "claude"),
-            skills={"alpha"},
+            agents={"helper"},
             mode="copy",
-            force={"opencode:skill/alpha"},
+            force={"opencode:agent/helper"},
         )
         actions = self.plan(selection, scans)
-        self.assertEqual(self.action_for(actions, "skill/alpha", "opencode").op, "update")
-        self.assertEqual(self.action_for(actions, "skill/alpha", "claude").op, "skip")
+        self.assertEqual(self.action_for(actions, "agent/helper", "opencode").op, "update")
+        self.assertEqual(self.action_for(actions, "agent/helper", "claude").op, "skip")
+
+    def test_skills_go_only_to_claude_when_both_are_selected(self) -> None:
+        # opencode reads ~/.claude/skills, so a second copy would list every skill twice.
+        both = self.plan(self.select(harnesses=("opencode", "claude"), skills={"alpha"}))
+        self.assertEqual({(a.harness_id, a.op) for a in both if a.kind == "skill"}, {("claude", "install")})
+        alone = self.plan(self.select(harnesses=("opencode",), skills={"alpha"}))
+        self.assertEqual({(a.harness_id, a.op) for a in alone if a.kind == "skill"}, {("opencode", "install")})
+
+    def test_existing_opencode_skills_are_removed_by_prune_when_both_are_selected(self) -> None:
+        scans = {"opencode": {"skill/alpha": self.placed(self.opencode, self.alpha, Status.LINKED)}}
+        kept = self.plan(self.select(harnesses=("opencode", "claude"), skills={"alpha"}), scans)
+        self.assertEqual(self.action_for(kept, "skill/alpha", "opencode").op, "keep")
+        pruned = self.plan(self.select(harnesses=("opencode", "claude"), skills={"alpha"}, prune=True), scans)
+        self.assertEqual(self.action_for(pruned, "skill/alpha", "opencode").op, "remove")
 
     def test_harnesses_outside_the_selection_are_ignored(self) -> None:
         actions = self.plan(self.select(harnesses=("claude",), skills={"alpha"}))
@@ -561,9 +575,9 @@ class RealCatalogPlanningTest(unittest.TestCase):
             )
             actions = plan_actions(catalog, harnesses, {}, selection, stub_versions())
             installs = {(a.harness_id, a.kind, a.name) for a in actions if a.op == "install"}
-            for harness_id in ("opencode", "claude"):
-                for skill in ("make-plan", "plans-convention", "research-topic"):
-                    self.assertIn((harness_id, "skill", skill), installs)
+            for skill in ("make-plan", "plans-convention", "research-topic"):
+                self.assertIn(("claude", "skill", skill), installs)
+                self.assertNotIn(("opencode", "skill", skill), installs)
             commands = [a for a in actions if a.kind == "command"]
             self.assertEqual(sorted(a.name for a in commands), ["make-plan", "research-topic"])
             self.assertEqual({a.harness_id for a in commands}, {"opencode"})

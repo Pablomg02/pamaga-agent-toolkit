@@ -32,6 +32,7 @@ class Harness:
     binary: str
     supports_commands: bool
     restart_hint: str
+    skills_from: str | None = None  # id of a harness whose skills dir this one also reads
 
     def dir_for(self, kind: str) -> Path:
         """Directory holding items of `kind`: "skill", "agent" or "command"."""
@@ -58,6 +59,7 @@ class HarnessSpec:
     user_root: str  # "xdg" (XDG_CONFIG_HOME, fallback ~/.config) or "home"
     user_dir: str
     project_dir: str
+    skills_from: str | None = None
 
 
 HARNESS_SPECS: tuple[HarnessSpec, ...] = (
@@ -70,6 +72,7 @@ HARNESS_SPECS: tuple[HarnessSpec, ...] = (
         user_root="xdg",
         user_dir="opencode",
         project_dir=".opencode",
+        skills_from="claude",
     ),
     HarnessSpec(
         id="claude",
@@ -120,4 +123,5 @@ def _build(spec: HarnessSpec, base: Path) -> Harness:
         binary=spec.binary,
         supports_commands=spec.supports_commands,
         restart_hint=spec.restart_hint,
+        skills_from=spec.skills_from,
     )

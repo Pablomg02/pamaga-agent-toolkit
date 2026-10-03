@@ -26,7 +26,10 @@ standard library only.
 Notes:
 
 - opencode also reads skills from `~/.claude/skills/`, so skills installed for
-  Claude Code are picked up there too.
+  Claude Code are picked up there too. When the installer targets both, it
+  puts the skills only in `~/.claude/skills/` (opencode would otherwise list
+  each one twice) and gives opencode just its agents and command wrappers.
+  If you install by hand, do the same: skills in one place only.
 - Claude Code registers every skill as `/<name>` on its own. Do not install
   `commands/` there: the wrappers would collide with the skills.
 - Both agents also support project-scoped installs: `.opencode/` and `.claude/`

@@ -32,3 +32,37 @@ jobs:
       - name: Lint install script
         if: runner.os == 'Linux'
         run: shellcheck scripts/install.sh
+
+  # Every push to main that passes the checks becomes a release named after
+  # the day in Spain plus a counter: 2026.10.03.1, 2026.10.03.2...
+  release:
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force
+          if git tag --points-at HEAD | grep -qE '^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+$'; then
+            echo "HEAD already released; nothing to do"
+            exit 0
+          fi
+          day=$(TZ=Europe/Madrid date +%Y.%m.%d)
+          last=$(git tag -l "$day.*" | sed "s/^$day\.//" | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
+          tag="$day.$(( ${last:-0} + 1 ))"
+          previous=$(git describe --tags --abbrev=0 HEAD 2>/dev/null || true)
+          git log --no-merges --pretty='- %s (%h)' "${previous:+$previous..}HEAD" > notes.md
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file notes.md
+          echo "released $tag"

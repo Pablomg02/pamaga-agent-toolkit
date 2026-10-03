@@ -1,0 +1,53 @@
+{
+  "skill_name": "deep-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review my changes.",
+      "expected_output": "The agent detects the uncommitted and branch changes, asks which theme groups to review with a recommended selection (and confirms the detected scope), runs one reviewer per selected theme in parallel, validates findings with separate validators, and reports only confirmed or plausible findings ordered by severity.",
+      "files": [],
+      "expectations": [
+        "Detects the scope and offers it as the recommended option with its size",
+        "Asks which themes to review, offering the groups and a recommendation",
+        "Launches one reviewer per selected theme, each with only its theme",
+        "Validates findings with validators that did not produce them",
+        "Rejected findings do not appear in the report",
+        "Every finding has a location, impact and fix",
+        "Does not modify code"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Look for performance problems and bugs in src/importer/.",
+      "expected_output": "Scope and themes are both given, so the agent asks nothing and reviews src/importer/ in full with the bugs and performance reviewers.",
+      "files": [],
+      "expectations": [
+        "Does not ask about scope or themes",
+        "Runs only the bugs and performance reviewers",
+        "Reviews the whole folder, not just a diff"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Can you audit this repo? Clean code base, I just want to know if there's anything wrong.",
+      "expected_output": "The agent warns that a whole-repository review is expensive, asks for themes, and when nothing survives validation it says so plainly without padding the report.",
+      "files": [],
+      "expectations": [
+        "Warns about cost and risk-based prioritisation for a whole-repo scope",
+        "Reports 'no findings' plainly when validation rejects everything",
+        "Lists what was not covered"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "review my changes before I open the PR", "should_trigger": true},
+    {"query": "can you do a thorough code review of the payments module?", "should_trigger": true},
+    {"query": "check this branch for optimisation opportunities and bugs", "should_trigger": true},
+    {"query": "is the documentation still in sync with the code after my refactor?", "should_trigger": true},
+    {"query": "audit the repo for security issues", "should_trigger": true},
+    {"query": "the app crashes when I upload an empty file, find out why", "should_trigger": false},
+    {"query": "review this plan before I implement it", "should_trigger": false},
+    {"query": "write a review of the movie Dune", "should_trigger": false},
+    {"query": "refactor this function to be simpler", "should_trigger": false}
+  ]
+}

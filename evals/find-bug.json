@@ -1,0 +1,40 @@
+{
+  "skill_name": "find-bug",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "test_parse_dates started failing after I updated the dependencies yesterday. Fix it.",
+      "expected_output": "The agent reproduces the failure, identifies the dependency change (bisecting the lock file or versions if needed), explains the root cause, fixes it at the cause, keeps or adds a regression test, runs the suite and reports symptom, cause, fix and proof.",
+      "files": [],
+      "expectations": [
+        "Reproduces the failure before changing code",
+        "Uses the 'since yesterday' clue (diff of dependencies or bisect)",
+        "Explains the chain from cause to symptom",
+        "Does not skip, delete or loosen the failing test",
+        "Runs the whole test suite after the fix",
+        "Removes any temporary debugging code"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Why does the export sometimes produce an empty file? Don't change anything yet.",
+      "expected_output": "The agent investigates the intermittent failure, finds the root cause with evidence, and proposes a fix without modifying code.",
+      "files": [],
+      "expectations": [
+        "Treats it as intermittent: looks for timing, concurrency or state causes",
+        "Stops at the root cause and proposes the fix",
+        "Does not modify any file"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "the server hangs when two users save at the same time, debug it", "should_trigger": true},
+    {"query": "this test is flaky, can you find out why?", "should_trigger": true},
+    {"query": "after upgrading to Python 3.13 the totals are off by one cent", "should_trigger": true},
+    {"query": "it doesn't work, I get KeyError: 'user_id' when logging in", "should_trigger": true},
+    {"query": "review my branch for possible bugs before merging", "should_trigger": false},
+    {"query": "add a ticket for the crash on export, I'll look at it next week", "should_trigger": false},
+    {"query": "plan the refactor of the parser", "should_trigger": false},
+    {"query": "what does a bug bounty program usually pay?", "should_trigger": false}
+  ]
+}

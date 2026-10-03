@@ -1,0 +1,55 @@
+{
+  "skill_name": "implement-plan",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Implement plan 0008.",
+      "expected_output": "The coordinator reads the plan, asks about ambiguities and the git policy, records answers in plan.md, moves the folder to in-progress, records a test baseline, and runs implement → verify per task with at most two retries, updating the ledger after each task.",
+      "files": [],
+      "expectations": [
+        "Checks readiness and asks about ambiguities before writing code",
+        "Records every clarification in plan.md before starting",
+        "Asks for the git policy and records it in Implementation",
+        "Moves the folder to in-progress with plans.py",
+        "Records a baseline of failing tests before the first task",
+        "Each task gets a brief with objective, scope, verbatim criteria and report format",
+        "A separate verifier checks real files and runs tests; the implementer report is not accepted as proof",
+        "No more than two retries per task",
+        "The ledger in plan.md is updated after each task",
+        "Never pushes"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Implement the login feature.",
+      "expected_output": "No plan folder covers login; the agent says the skill needs an existing plan, suggests make-plan, and stops without writing code.",
+      "files": [],
+      "expectations": [
+        "Searches plans/ for a matching plan",
+        "States that no plan exists and suggests make-plan",
+        "Does not write any code or improvise a plan"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Continue with plan 0008, we stopped halfway yesterday.",
+      "expected_output": "The agent reads the ledger, checks the repository matches it, and resumes at the first task not marked done.",
+      "files": [],
+      "expectations": [
+        "Reads the Implementation ledger",
+        "Verifies the repository state against the ledger before continuing",
+        "Does not redo tasks already verified"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "implement plan 0042", "should_trigger": true},
+    {"query": "execute the plan we wrote yesterday for the search feature", "should_trigger": true},
+    {"query": "let's start working on the plan in in-progress", "should_trigger": true},
+    {"query": "resume plan 0007 where we left it", "should_trigger": true},
+    {"query": "plan how to implement caching", "should_trigger": false},
+    {"query": "implement a binary search function in Python", "should_trigger": false},
+    {"query": "review the code from plan 0042", "should_trigger": false},
+    {"query": "create a roadmap for the v2 release", "should_trigger": false}
+  ]
+}

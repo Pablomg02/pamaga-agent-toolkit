@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.9", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Validate skills, commands, agents and evals
+        run: python scripts/validate.py
+
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+
+      - name: Lint install script
+        if: runner.os == 'Linux'
+        run: shellcheck scripts/install.sh

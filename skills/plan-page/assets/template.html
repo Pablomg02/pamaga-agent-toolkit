@@ -1,0 +1,355 @@
+<!doctype html>
+<!--
+  plan-page template. Copy this file to <plan folder>/plan.html and replace
+  the example content. Rules:
+  - Do not edit the <style> block: every page shares this style.
+  - Components are marked with COMPONENT comments. Repeat or delete them;
+    do not invent new ones.
+  - Delete sections that do not apply (e.g. Progress before implementation,
+    Milestones for a plan, Execution order for a roadmap).
+  - Escape &, < and > in all text. No external resources of any kind.
+  - Keep the plan-source-sha256 meta; `plans.py stamp-page` fills it.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="plan-source-sha256" content="">
+<title>0042 · Add full-text search</title>
+<style>
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --surface-2: #f3f1ed;
+  --text: #1d1c1a;
+  --muted: #6b6760;
+  --border: #e4e0d9;
+  --accent: #b4532a;
+  --accent-soft: #f6e6dc;
+  --ok: #2f7d4f;
+  --ok-soft: #e1f1e7;
+  --warn: #a86b00;
+  --warn-soft: #f7ecd4;
+  --bad: #b3261e;
+  --bad-soft: #f9e0de;
+  --info: #2b5f9e;
+  --info-soft: #e0eaf6;
+  --radius: 10px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614;
+    --surface: #201f1c;
+    --surface-2: #2a2825;
+    --text: #ece9e4;
+    --muted: #a39e95;
+    --border: #3a3733;
+    --accent: #e3845a;
+    --accent-soft: #3d2a20;
+    --ok: #6cc28f;
+    --ok-soft: #1f3528;
+    --warn: #e0a640;
+    --warn-soft: #3a2f18;
+    --bad: #ef7d74;
+    --bad-soft: #3e2220;
+    --info: #7fb0eb;
+    --info-soft: #1f2d3f;
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.6 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+.layout {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 48px;
+}
+nav.toc { position: sticky; top: 32px; align-self: start; font-size: 14px; }
+nav.toc p { margin: 0 0 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+nav.toc a { display: block; padding: 4px 0 4px 12px; color: var(--muted); text-decoration: none; border-left: 2px solid var(--border); }
+nav.toc a:hover { color: var(--text); border-left-color: var(--accent); }
+main { min-width: 0; }
+header.hero { margin-bottom: 40px; }
+.kicker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 16px; letter-spacing: -.02em; }
+h2 { font-size: 22px; margin: 0 0 16px; letter-spacing: -.01em; }
+h3 { font-size: 17px; margin: 24px 0 8px; }
+p { margin: 0 0 12px; }
+.lede { font-size: 19px; color: var(--muted); max-width: 70ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 16px; font-size: 14px; color: var(--muted); }
+.meta b { color: var(--text); font-weight: 600; }
+section { margin: 0 0 48px; scroll-margin-top: 24px; }
+code, .path { font-family: var(--mono); font-size: .88em; background: var(--surface-2); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; overflow-wrap: anywhere; }
+a { color: var(--accent); }
+ul, ol { margin: 0 0 12px; padding-left: 22px; }
+li { margin: 4px 0; }
+
+/* COMPONENT pill: status, type, severity */
+.pill { display: inline-block; font-size: 12px; font-weight: 600; line-height: 1; padding: 5px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); white-space: nowrap; }
+.pill.accent { background: var(--accent-soft); color: var(--accent); border-color: transparent; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.pill.warn { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.pill.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.pill.info { background: var(--info-soft); color: var(--info); border-color: transparent; }
+
+/* COMPONENT stats: at-a-glance numbers */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 0 0 48px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.stat .n { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.stat .l { font-size: 13px; color: var(--muted); }
+
+/* COMPONENT card */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 24px; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card h3:first-child { margin-top: 0; }
+.callout { border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--radius) var(--radius) 0; padding: 14px 18px; margin: 0 0 16px; }
+.callout.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+
+/* COMPONENT progress */
+.progress { height: 10px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
+.progress > span { display: block; height: 100%; background: var(--ok); }
+.progress-label { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+/* COMPONENT waves: execution order computed from task dependencies */
+.waves { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 1fr); gap: 16px; overflow-x: auto; padding-bottom: 8px; }
+.wave > .wave-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+.wave .task-chip { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
+.task-chip .id { font-family: var(--mono); font-weight: 700; color: var(--accent); margin-right: 6px; }
+.task-chip .deps { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.task-chip.done { border-color: var(--ok); }
+.task-chip.done .id { color: var(--ok); }
+
+/* COMPONENT task: expandable task detail */
+details.task { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; }
+details.task > summary { cursor: pointer; list-style: none; padding: 14px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+details.task > summary::-webkit-details-marker { display: none; }
+details.task > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+details.task[open] > summary::before { transform: rotate(90deg); }
+details.task > summary .id { font-family: var(--mono); font-weight: 700; color: var(--accent); }
+details.task > summary .name { font-weight: 600; flex: 1; min-width: 200px; }
+details.task .body { padding: 0 20px 18px 44px; }
+.label { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 6px; }
+ul.checks { list-style: none; padding: 0; }
+ul.checks li { padding-left: 28px; position: relative; }
+ul.checks li::before { content: ""; position: absolute; left: 2px; top: 5px; width: 14px; height: 14px; border: 2px solid var(--border); border-radius: 4px; }
+ul.checks li.done::before { background: var(--ok); border-color: var(--ok); }
+ul.checks li.done::after { content: ""; position: absolute; left: 7px; top: 7px; width: 5px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+
+/* COMPONENT milestones: vertical timeline for roadmaps */
+ol.timeline { list-style: none; padding: 0; margin: 0; position: relative; }
+ol.timeline::before { content: ""; position: absolute; left: 11px; top: 6px; bottom: 6px; width: 2px; background: var(--border); }
+ol.timeline > li { position: relative; padding: 0 0 28px 44px; margin: 0; }
+ol.timeline > li::before { content: ""; position: absolute; left: 4px; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--accent); }
+ol.timeline > li.done::before { background: var(--ok); border-color: var(--ok); }
+ol.timeline h3 { margin: 0 0 4px; }
+
+/* COMPONENT table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+tr:last-child td { border-bottom: 0; }
+
+footer { margin-top: 64px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; gap: 0; padding: 32px 16px 64px; }
+  nav.toc { display: none; }
+  details.task .body { padding-left: 20px; }
+}
+@media print {
+  :root { --bg: #fff; --surface: #fff; }
+  .layout { display: block; padding: 0; max-width: none; }
+  nav.toc { display: none; }
+  details.task { break-inside: avoid; }
+  section { break-inside: avoid-page; }
+  a { color: inherit; text-decoration: none; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<nav class="toc" aria-label="Contents">
+  <p>Contents</p>
+  <!-- One link per section kept below, same order. -->
+  <a href="#why">Why</a>
+  <a href="#approach">Approach</a>
+  <a href="#order">Execution order</a>
+  <a href="#tasks">Tasks</a>
+  <a href="#verification">Verification</a>
+  <a href="#risks">Risks</a>
+  <a href="#progress">Progress</a>
+</nav>
+
+<main>
+
+<header class="hero">
+  <div class="kicker">
+    <span class="pill accent">Plan 0042</span>
+    <!-- Type: plan | roadmap | ticket. Status pill: backlog = (no class), in-progress = info, done = ok -->
+    <span class="pill">plan</span>
+    <span class="pill info">in progress</span>
+  </div>
+  <h1>Add full-text search</h1>
+  <!-- Lede: two or three sentences a newcomer understands: what changes and why. -->
+  <p class="lede">Users can search notes by any word in their body, not just by title. Search runs on a local SQLite FTS5 index kept in sync on every save, so it works offline.</p>
+  <div class="meta">
+    <span>Created <b>2026-10-03</b></span>
+    <!-- Only if it has a parent roadmap -->
+    <span>Part of roadmap <b>0040</b></span>
+    <span>Page generated <b>2026-10-05</b></span>
+  </div>
+</header>
+
+<!-- COMPONENT stats: 3-4 numbers that summarise the plan. -->
+<div class="stats">
+  <div class="stat"><div class="n">5</div><div class="l">tasks</div></div>
+  <div class="stat"><div class="n">2</div><div class="l">done</div></div>
+  <div class="stat"><div class="n">3</div><div class="l">risks tracked</div></div>
+  <div class="stat"><div class="n">0</div><div class="l">open questions</div></div>
+</div>
+
+<section id="why">
+  <h2>Why</h2>
+  <p>Explain the problem in plain words, with the evidence that motivates the work. Write for someone who has not read the plan.</p>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Goals</h3>
+      <ul>
+        <li>Find a note by any word it contains in under 100&nbsp;ms for 10k notes.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Not in scope</h3>
+      <ul>
+        <li>Fuzzy matching and ranking by relevance.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="approach">
+  <h2>Approach</h2>
+  <p>The chosen solution in a few paragraphs, and why it beat the alternatives.</p>
+  <!-- COMPONENT callout: at most one or two per page, for what the reader must not miss. Class "warn" for caveats. -->
+  <div class="callout">The index is derived data: it can always be rebuilt from the notes, so a corrupted index is never data loss.</div>
+  <h3>Key decisions</h3>
+  <!-- COMPONENT table -->
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Decision</th><th>Why</th><th>Source</th></tr></thead>
+      <tbody>
+        <tr><td>Use SQLite FTS5</td><td>Already a dependency; no server needed.</td><td><span class="pill">research</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="order">
+  <h2>Execution order</h2>
+  <p>Tasks in the same column do not depend on each other. Each column needs the previous ones finished.</p>
+  <!-- COMPONENT waves: wave 1 = tasks with no dependencies; wave N = tasks whose dependencies are all in earlier waves. Add class "done" to finished tasks. -->
+  <div class="waves">
+    <div class="wave">
+      <div class="wave-title">Wave 1</div>
+      <div class="task-chip done"><span class="id">T1</span>Create the index</div>
+    </div>
+    <div class="wave">
+      <div class="wave-title">Wave 2</div>
+      <div class="task-chip done"><span class="id">T2</span>Sync on save<span class="deps">after T1</span></div>
+      <div class="task-chip"><span class="id">T3</span>Query parser<span class="deps">after T1</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="tasks">
+  <h2>Tasks</h2>
+  <!-- COMPONENT task: one per task. Status pill: pending = (no class), in progress = info, done = ok, failed = bad. Add "open" to expand by default. -->
+  <details class="task">
+    <summary><span class="id">T1</span><span class="name">Create the search index</span><span class="pill ok">done</span></summary>
+    <div class="body">
+      <p>What this task achieves and why it comes first, in one or two sentences.</p>
+      <div class="label">Files</div>
+      <p><span class="path">src/db/search.py</span> <span class="path">tests/test_search.py</span></p>
+      <div class="label">Done when</div>
+      <!-- li.done when the ledger marks the task verified -->
+      <ul class="checks">
+        <li class="done"><code>pytest tests/test_search.py</code> passes</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<!-- Roadmaps only: replace Execution order and Tasks with these two. -->
+<!--
+<section id="milestones">
+  <h2>Milestones</h2>
+  <ol class="timeline">
+    <li class="done">
+      <h3>M1 · Search works offline</h3>
+      <p>Outcome in one sentence.</p>
+      <ul class="checks"><li class="done">Exit criterion</li></ul>
+    </li>
+  </ol>
+</section>
+<section id="derived">
+  <h2>Derived plans</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Plan</th><th>Resolves</th><th>Milestone</th><th>Depends on</th><th>Status</th></tr></thead>
+    <tbody><tr><td><b>0042</b> Add full-text search</td><td>…</td><td>M1</td><td>—</td><td><span class="pill info">in progress</span></td></tr></tbody>
+  </table></div>
+</section>
+-->
+
+<section id="verification">
+  <h2>Verification</h2>
+  <p>How we will know the whole plan is done: commands, scenarios, measurements.</p>
+</section>
+
+<section id="risks">
+  <h2>Risks</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Risk</th><th>Impact</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <!-- Impact pill: high = bad, medium = warn, low = (no class) -->
+        <tr><td>Index drifts from notes after a crash</td><td><span class="pill warn">medium</span></td><td>Rebuild on startup when the row counts differ.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="progress">
+  <h2>Progress</h2>
+  <!-- Only once implementation has started. Width = done / total. -->
+  <div class="progress" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"><span style="width:40%"></span></div>
+  <div class="progress-label"><span>2 of 5 tasks verified</span><span>40%</span></div>
+</section>
+
+<footer>
+  Generated from <code>plan.md</code> of plan 0042 on 2026-10-05. The plan is the source of truth; if they disagree, the plan wins.
+</footer>
+
+</main>
+</div>
+<script>
+// Closed <details> do not print; open them all before printing.
+window.addEventListener("beforeprint", function () {
+  document.querySelectorAll("details").forEach(function (d) { d.open = true; });
+});
+</script>
+</body>
+</html>

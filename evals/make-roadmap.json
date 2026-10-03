@@ -1,0 +1,29 @@
+{
+  "skill_name": "make-roadmap",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Over the next few months I want to turn this CLI into a desktop app with sync. Make a roadmap.",
+      "expected_output": "The agent reads the repository to describe the current state, asks about success criteria, horizon and constraints, and writes a roadmap folder with 3-7 observable milestones, a Derived plans table with what each plan resolves and its dependencies, and an ordering rationale. It creates no derived plan folders.",
+      "files": [],
+      "expectations": [
+        "Creates the folder with plans.py new --type roadmap",
+        "Milestones are observable states with exit criteria",
+        "Derived plans table lists what each plan resolves, its milestone and dependencies",
+        "Contains no task-level detail or file paths to modify",
+        "Does not create derived plan folders or start make-plan",
+        "Ends by explaining that derived plans are created on demand with make-plan"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "I need a long-term roadmap for migrating our monolith to services", "should_trigger": true},
+    {"query": "what milestones should we set to get this project to 1.0 over the next quarter?", "should_trigger": true},
+    {"query": "this is too big for one plan, help me split it into phases and plans", "should_trigger": true},
+    {"query": "make an over-plan for the whole redesign", "should_trigger": true},
+    {"query": "plan the implementation of the export button", "should_trigger": false},
+    {"query": "implement roadmap item P1", "should_trigger": false},
+    {"query": "show me the public roadmap of React", "should_trigger": false},
+    {"query": "add a ticket about the flaky test", "should_trigger": false}
+  ]
+}

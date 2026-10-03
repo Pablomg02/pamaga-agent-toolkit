@@ -1,0 +1,54 @@
+{
+  "skill_name": "make-plan",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to add CSV export to the reports page. Plan it.",
+      "expected_output": "The agent investigates the reports code, asks the questions that change the design (columns, size limits, sync vs background export) with a recommended option each, writes plans/backlog/<id>-csv-export/plan.md with verifiable tasks, runs two independent critics, records their disposition in plan-review.md, and reports without implementing.",
+      "files": [],
+      "expectations": [
+        "Reads the repository (directly or through an explorer subagent) before asking questions the code could answer",
+        "Asks clarifying questions with a recommended option before writing the plan",
+        "Creates the folder with plans.py new, in backlog/",
+        "Every task has objective, files, depends on and verifiable acceptance criteria",
+        "Open questions is empty in the final plan",
+        "Launches two critics with different lenses that receive the plan file, not a summary",
+        "Writes plan-review.md with a disposition for each critic issue",
+        "Does not write any implementation code"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Make a plan for derived plan P2 of roadmap 0004.",
+      "expected_output": "The plan is created with --parent 0004, takes its scope from the roadmap row, and the roadmap's Derived plans table is updated with the new id.",
+      "files": [],
+      "expectations": [
+        "Reads roadmap 0004 before planning",
+        "Creates the plan with --parent 0004",
+        "Updates the Plan column of row P2 in the roadmap with the new id"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Plan fixing the typo in the README title.",
+      "expected_output": "The agent says this is too small for a plan and offers to just fix it or capture a ticket.",
+      "files": [],
+      "expectations": [
+        "Does not create a full plan folder without the user's agreement",
+        "Offers new-ticket or a direct fix"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "help me plan the migration from REST to GraphQL", "should_trigger": true},
+    {"query": "how should we approach adding multi-tenancy? I want a proper plan before touching code", "should_trigger": true},
+    {"query": "break down the dark mode feature into tasks", "should_trigger": true},
+    {"query": "turn ticket 0021 into a real plan", "should_trigger": true},
+    {"query": "design the implementation for rate limiting on the public API", "should_trigger": true},
+    {"query": "implement plan 0015", "should_trigger": false},
+    {"query": "I want a roadmap for the next six months of the product", "should_trigger": false},
+    {"query": "add this bug to the backlog for later", "should_trigger": false},
+    {"query": "make me an HTML page explaining plan 0009", "should_trigger": false},
+    {"query": "what's the plan for dinner?", "should_trigger": false}
+  ]
+}

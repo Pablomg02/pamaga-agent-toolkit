@@ -1,0 +1,39 @@
+{
+  "skill_name": "plan-page",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Generate an explanatory web page for plan 0005.",
+      "expected_output": "plans/*/0005-*/plan.html is written from the template, explains the plan in plain language with execution waves computed from dependencies, is stamped with plans.py stamp-page, and contains no external resources.",
+      "files": [],
+      "expectations": [
+        "Starts from assets/template.html and keeps its style block unchanged",
+        "Saves the page as plan.html inside the plan folder",
+        "Execution order waves are consistent with each task's Depends on",
+        "Runs plans.py stamp-page and it reports no external references",
+        "Contains no example content left from the template",
+        "Adds no information that is not in the plan folder"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I just added a task to plan 0005 (it already has a page). Add T6: write the migration guide.",
+      "expected_output": "The agent edits plan.md, runs page-status, reports that plan.html is now stale and offers to regenerate it, without regenerating it.",
+      "files": [],
+      "expectations": [
+        "Runs plans.py page-status after editing",
+        "Tells the user the page is out of date and offers to regenerate",
+        "Does not regenerate plan.html without being asked"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "make an HTML page that explains plan 0012 so I can share it with the team", "should_trigger": true},
+    {"query": "regenerate the plan page for 0003, it's outdated", "should_trigger": true},
+    {"query": "I want a visual summary of the roadmap as a web page", "should_trigger": true},
+    {"query": "make a plan for the landing page", "should_trigger": false},
+    {"query": "build an HTML landing page for my product", "should_trigger": false},
+    {"query": "summarise plan 0012 for me here in chat", "should_trigger": false},
+    {"query": "implement plan 0012", "should_trigger": false}
+  ]
+}

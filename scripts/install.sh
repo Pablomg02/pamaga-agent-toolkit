@@ -10,8 +10,8 @@ usage() {
 Usage: $(basename "$0") [target] [--uninstall]
 
 Targets:
-  opencode     Skills, agents and commands for opencode (default)
-  claude       Skills, agents and commands for Claude Code
+  opencode     Skills, agents and command wrappers for opencode (default)
+  claude       Skills and agents for Claude Code (skills are already /commands)
   all          Both of the above
 
 Options:
@@ -20,7 +20,7 @@ Options:
 
 Locations:
   opencode     ${OPENCODE_DIR}/{skills,agents,commands}
-  Claude Code  ${CLAUDE_DIR}/{skills,agents,commands}
+  Claude Code  ${CLAUDE_DIR}/{skills,agents}
 EOF
 }
 
@@ -67,8 +67,12 @@ unlink_skills()   { unlink_entries "$REPO_DIR/skills"   "$1/skills"; }
 unlink_agents()   { unlink_entries "$REPO_DIR/agents"   "$1/agents" "*.md"; }
 unlink_commands() { unlink_entries "$REPO_DIR/commands" "$1/commands" "*.md"; }
 
-apply_full_harness() {
-  local name="$1" dest="$2"
+# commands/ only holds opencode wrappers that let the user type /<skill>.
+# Claude Code registers every skill as /<skill> already, so linking the
+# wrappers there would collide. Uninstall still cleans them everywhere, in
+# case an older version of this script linked them.
+apply_harness() {
+  local name="$1" dest="$2" with_commands="$3"
   echo "${name} -> ${dest}"
   if [ "$UNINSTALL" -eq 1 ]; then
     unlink_skills "$dest"
@@ -77,7 +81,9 @@ apply_full_harness() {
   else
     link_skills "$dest"
     link_agents "$dest"
-    link_commands "$dest"
+    if [ "$with_commands" -eq 1 ]; then
+      link_commands "$dest"
+    fi
   fi
 }
 
@@ -93,11 +99,11 @@ for arg in "$@"; do
 done
 
 case "$TARGET" in
-  opencode) apply_full_harness "OpenCode" "$OPENCODE_DIR" ;;
-  claude) apply_full_harness "Claude Code" "$CLAUDE_DIR" ;;
+  opencode) apply_harness "OpenCode" "$OPENCODE_DIR" 1 ;;
+  claude) apply_harness "Claude Code" "$CLAUDE_DIR" 0 ;;
   all)
-    apply_full_harness "OpenCode" "$OPENCODE_DIR"
-    apply_full_harness "Claude Code" "$CLAUDE_DIR"
+    apply_harness "OpenCode" "$OPENCODE_DIR" 1
+    apply_harness "Claude Code" "$CLAUDE_DIR" 0
     if [ "$UNINSTALL" -eq 0 ]; then
       echo
       echo "Note: opencode reads skills from all installed locations. If you"

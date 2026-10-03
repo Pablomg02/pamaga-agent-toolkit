@@ -8,22 +8,27 @@ but doing it by hand is just as easy.
 ## Repository layout
 
 ```
-skills/<name>/SKILL.md   # one folder per skill
+skills/<name>/SKILL.md   # one folder per skill, with its bundled files
 agents/<name>.md         # subagents
-commands/<name>.md       # slash commands
+commands/<name>.md       # opencode wrappers so each skill is also /<name>
 ```
+
+Skills that bundle scripts need Python 3.9 or newer (`python3`). They use the
+standard library only.
 
 ## Where each agent looks
 
 | Agent | Skills | Subagents | Commands |
 | --- | --- | --- | --- |
 | opencode | `~/.config/opencode/skills/<name>/SKILL.md` | `~/.config/opencode/agents/<name>.md` | `~/.config/opencode/commands/<name>.md` |
-| Claude Code | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md` | `~/.claude/commands/<name>.md` |
+| Claude Code | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md` | not needed |
 
 Notes:
 
 - opencode also reads skills from `~/.claude/skills/`, so skills installed for
   Claude Code are picked up there too.
+- Claude Code registers every skill as `/<name>` on its own. Do not install
+  `commands/` there: the wrappers would collide with the skills.
 - Both agents also support project-scoped installs: `.opencode/` and `.claude/`
   inside a repository. This guide covers the global (user) scope.
 
@@ -39,7 +44,7 @@ DEST="$HOME/.config/opencode"   # opencode; use $HOME/.claude for Claude Code
 mkdir -p "$DEST"/{skills,agents,commands}
 ln -sfn "$REPO"/skills/*/     "$DEST/skills/"
 ln -sfn "$REPO"/agents/*.md   "$DEST/agents/"
-ln -sfn "$REPO"/commands/*.md "$DEST/commands/"
+ln -sfn "$REPO"/commands/*.md "$DEST/commands/"   # opencode only
 ```
 
 The `ln` commands rely on shell globs, so they only link entries that already
@@ -56,7 +61,7 @@ DEST="$HOME/.config/opencode"   # opencode; use $HOME/.claude for Claude Code
 mkdir -p "$DEST"/{skills,agents,commands}
 cp -R "$REPO"/skills/*/     "$DEST/skills/"
 cp    "$REPO"/agents/*.md   "$DEST/agents/"
-cp    "$REPO"/commands/*.md "$DEST/commands/"
+cp    "$REPO"/commands/*.md "$DEST/commands/"   # opencode only
 ```
 
 Note that copied files do not update on `git pull`; re-run the copy after
@@ -74,7 +79,8 @@ The script automates the symlink approach above:
 ```
 
 It only creates or removes symlinks that point into this repository, so it never
-touches other files in your config directories.
+touches other files in your config directories. Command wrappers are linked
+for opencode only.
 
 ## Per-agent notes
 

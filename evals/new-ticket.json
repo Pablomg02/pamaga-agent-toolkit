@@ -1,0 +1,28 @@
+{
+  "skill_name": "new-ticket",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Note for later: the export button does nothing when the list is empty. Create a ticket.",
+      "expected_output": "After checking for duplicates, a ticket folder is created in plans/backlog/ with an imperative title, the bug described with expected vs actual behaviour, and acceptance criteria; the id and path are reported in one line.",
+      "files": [],
+      "expectations": [
+        "Checks backlog and in-progress for duplicates",
+        "Creates the folder with plans.py new --type ticket",
+        "Title is short and imperative",
+        "Justification states expected vs actual behaviour",
+        "Has at least one acceptance criterion",
+        "Does not start investigating or fixing the bug"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "add this to the backlog: support exporting to PDF", "should_trigger": true},
+    {"query": "create a ticket for the slow login page", "should_trigger": true},
+    {"query": "note these three review findings as tickets, we'll fix them later", "should_trigger": true},
+    {"query": "open an issue for the typo in the settings screen", "should_trigger": true},
+    {"query": "fix the slow login page", "should_trigger": false},
+    {"query": "plan the PDF export feature in detail", "should_trigger": false},
+    {"query": "buy tickets for the concert on Friday", "should_trigger": false}
+  ]
+}

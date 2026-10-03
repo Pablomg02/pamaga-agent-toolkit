@@ -1,0 +1,40 @@
+{
+  "skill_name": "plans-convention",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Move plan 0003 to in progress, I'm starting it today.",
+      "expected_output": "The folder plans/backlog/0003-*/ is moved to plans/in-progress/ with the bundled script, and the new path is reported.",
+      "files": [],
+      "expectations": [
+        "Uses plans.py move (not a manual mv) to change the status",
+        "Does not add a status field to plan.md",
+        "Reports the new folder path",
+        "If plan.html exists and plan.md was edited, mentions the page may be stale instead of regenerating it"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I merged two branches and now I think two plans have the same number. Can you check the plans folder?",
+      "expected_output": "Runs plans.py validate, reports the duplicated id with both paths, and proposes renumbering the newer folder with the next free id (updating references to it), asking before renaming.",
+      "files": [],
+      "expectations": [
+        "Runs plans.py validate",
+        "Identifies the duplicated id and both folders",
+        "Uses next-id to propose a new id rather than inventing one",
+        "Asks before renaming a folder that may already be referenced"
+      ]
+    }
+  ],
+  "trigger_evals": [
+    {"query": "where should I put the plan for the new auth flow in this repo?", "should_trigger": true},
+    {"query": "list everything that's in the backlog", "should_trigger": true},
+    {"query": "close plan 0012, it's finished", "should_trigger": true},
+    {"query": "what's the next free plan id?", "should_trigger": true},
+    {"query": "mark 0007 as abandoned, we're not doing it anymore", "should_trigger": true},
+    {"query": "plan a trip to Lisbon for next weekend", "should_trigger": false},
+    {"query": "move the utils folder into src/", "should_trigger": false},
+    {"query": "what's the status of the deploy pipeline?", "should_trigger": false},
+    {"query": "explain the difference between a backlog and a sprint in scrum", "should_trigger": false}
+  ]
+}

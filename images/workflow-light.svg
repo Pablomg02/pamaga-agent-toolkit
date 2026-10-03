@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 990 400" width="990" height="400" role="img" aria-label="Workflow: research-topic and new-ticket feed make-roadmap and make-plan; make-plan, implement-plan, deep-review and ship-work are the main flow; plan-page, find-bug and save-learning plug in.">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#8c959f"/></marker></defs>
+<text x="40" y="30" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#2563eb" font-weight="700" letter-spacing="1.5">THINK</text>
+<line x1="40" y1="40" x2="380" y2="40" stroke="#2563eb" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+<text x="420" y="30" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#059669" font-weight="700" letter-spacing="1.5">BUILD</text>
+<line x1="420" y1="40" x2="570" y2="40" stroke="#059669" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+<text x="610" y="30" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#c2410c" font-weight="700" letter-spacing="1.5">CHECK</text>
+<line x1="610" y1="40" x2="760" y2="40" stroke="#c2410c" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+<text x="800" y="30" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#7c3aed" font-weight="700" letter-spacing="1.5">DELIVER</text>
+<line x1="800" y1="40" x2="950" y2="40" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+<path d="M115,124 L115,172" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text x="123" y="154" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="start" font-style="italic">informs</text>
+<path d="M170,124 L248.622,173.858" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<path d="M305,124 L305,172" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text x="313" y="154" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="start" font-style="italic">promote</text>
+<path d="M190,206 L226,206" fill="none" stroke="#8c959f" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M380,206 L416,206" fill="none" stroke="#8c959f" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M570,206 L606,206" fill="none" stroke="#8c959f" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M760,206 L796,206" fill="none" stroke="#8c959f" stroke-width="2" marker-end="url(#arrow)"/>
+<path d="M305,236 L305,292" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="1.5 4" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text x="313" y="270" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="start" font-style="italic">explain</text>
+<path d="M535,236 L641.488,294.085" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text x="606" y="260" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="start" font-style="italic">lessons</text>
+<path d="M570,326 L606,326" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<path d="M495,356 L495,374 Q495,386 507,386 L863,386 Q875,386 875,374 L875,240" fill="none" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text x="865" y="380" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="end" font-style="italic">fix, then ship</text>
+<path d="M424,86 L458,86" stroke="#8c959f" stroke-width="2" marker-end="url(#arrow)"/>
+<text x="470" y="90" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e">main flow</text>
+<path d="M424,106 L458,106" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<text x="470" y="110" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e">optional or side path</text>
+<path d="M424,126 L458,126" stroke="#8c959f" stroke-width="1.5" stroke-dasharray="1.5 4" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text x="470" y="130" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e">generated from</text>
+<rect x="650" y="79" width="34" height="14" rx="5" fill="none" stroke="#59636e" stroke-width="1.5"/>
+<text x="696" y="90" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e">core step</text>
+<rect x="650" y="99" width="34" height="14" rx="5" fill="none" stroke="#59636e" stroke-width="1.5" stroke-dasharray="5 3"/>
+<text x="696" y="110" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e">optional step</text>
+<text x="650" y="130" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="12" fill="#59636e">all share <tspan font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace">plans/</tspan></text>
+<rect x="40" y="64" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="40" y="64" width="150" height="60" rx="12" fill="#ffffff" fill-opacity="1" stroke="#2563eb" stroke-width="1.25"/>
+<text x="115" y="90" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">research-topic</text>
+<text x="115" y="109" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">answers with evidence</text>
+<rect x="230" y="64" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="230" y="64" width="150" height="60" rx="12" fill="#ffffff" fill-opacity="1" stroke="#2563eb" stroke-width="1.25"/>
+<text x="305" y="90" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">new-ticket</text>
+<text x="305" y="109" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">capture for later</text>
+<rect x="40" y="176" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="40" y="176" width="150" height="60" rx="12" fill="#2563eb" fill-opacity="0.06" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="115" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">make-roadmap</text>
+<text x="115" y="221" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">milestones · optional</text>
+<rect x="230" y="176" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="230" y="176" width="150" height="60" rx="12" fill="#2563eb" fill-opacity="0.12" stroke="#2563eb" stroke-width="2"/>
+<text x="305" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">make-plan</text>
+<text x="305" y="221" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">reviewed plan.md</text>
+<rect x="420" y="176" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="420" y="176" width="150" height="60" rx="12" fill="#059669" fill-opacity="0.12" stroke="#059669" stroke-width="2"/>
+<text x="495" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">implement-plan</text>
+<text x="495" y="221" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">subagents + verifier</text>
+<rect x="610" y="176" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="610" y="176" width="150" height="60" rx="12" fill="#c2410c" fill-opacity="0.12" stroke="#c2410c" stroke-width="2"/>
+<text x="685" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">deep-review</text>
+<text x="685" y="221" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">a reviewer per theme</text>
+<rect x="800" y="176" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="800" y="176" width="150" height="60" rx="12" fill="#7c3aed" fill-opacity="0.12" stroke="#7c3aed" stroke-width="2"/>
+<text x="875" y="202" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">ship-work</text>
+<text x="875" y="221" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">commit · push · PR</text>
+<rect x="230" y="296" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="230" y="296" width="150" height="60" rx="12" fill="#ffffff" fill-opacity="1" stroke="#2563eb" stroke-width="1.25"/>
+<text x="305" y="322" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">plan-page</text>
+<text x="305" y="341" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">HTML explainer</text>
+<rect x="420" y="296" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="420" y="296" width="150" height="60" rx="12" fill="#ffffff" fill-opacity="1" stroke="#059669" stroke-width="1.25"/>
+<text x="495" y="322" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">find-bug</text>
+<text x="495" y="341" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">root cause + test</text>
+<rect x="610" y="296" width="150" height="60" rx="12" fill="#ffffff"/>
+<rect x="610" y="296" width="150" height="60" rx="12" fill="#ffffff" fill-opacity="1" stroke="#db2777" stroke-width="1.25"/>
+<text x="685" y="322" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="14" font-weight="700" fill="#1f2328">save-learning</text>
+<text x="685" y="341" font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="11.5" fill="#59636e" text-anchor="middle">docs/learnings/</text>
+</svg>

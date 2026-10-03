@@ -32,46 +32,47 @@ whatever model a given agent is running.
 
 ## What's inside
 
-### Planning and implementation
+Ten skills that cover the life of a change, from the first question to the
+pull request. You do not need to remember them: each one loads on its own
+when your request matches ("plan the CSV export", "ship it"), and each one is
+also a slash command (`/make-plan`). The table follows the diagram, stage by
+stage.
 
-These skills share one convention: every piece of work is a folder under
-`plans/` (`backlog/`, `in-progress/`, `done/`) with a canonical `plan.md`.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="images/workflow-dark.svg">
+    <img src="images/workflow-light.svg" alt="Workflow: research-topic and new-ticket feed make-roadmap and make-plan; make-plan, implement-plan, deep-review and ship-work are the main flow; plan-page, find-bug and save-learning plug in." width="100%">
+  </picture>
+</p>
 
-| Skill | What it does |
-| --- | --- |
-| `plans-convention` | Defines the `plans/` layout and `plan.md` format, with a script for ids, moves and validation. Loaded by the others. |
-| `make-roadmap` | Writes a long-term over-plan: milestones, ordering, and the plans that should derive from it. |
-| `make-plan` | Investigates with helper subagents, asks until nothing is ambiguous, writes the plan, and has two independent critics challenge it. |
-| `implement-plan` | Coordinates implementer subagents (short tasks grouped, at most three in parallel) and an independent verifier per wave that checks the real result, with bounded retries. Works on your current branch. |
-| `new-ticket` | Captures a bug, idea or follow-up in the backlog in a minute. |
-| `plan-page` | Generates a self-contained HTML page that explains a plan, stored in its folder. |
+| Skill | Use it when | You get |
+| --- | --- | --- |
+| [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. Single or multi agent, as you choose; saved only if you ask. |
+| [`make‑roadmap`](skills/make-roadmap/SKILL.md) | The goal takes weeks or months. | A roadmap: milestones with exit criteria and the plans to derive from them. |
+| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks and verifiable criteria, after your questions are answered and two independent critics have challenged it. |
+| [`new‑ticket`](skills/new-ticket/SKILL.md) | Something should be done, but not now. | A ticket in the backlog, in a minute. |
+| [`plan‑page`](skills/plan-page/SKILL.md) | You want to read or share a plan at a glance. | A self-contained `plan.html` in the plan's folder. |
+| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready. | The code, built by subagents in small waves and checked by an independent verifier, with progress logged in the plan. |
+| [`find‑bug`](skills/find-bug/SKILL.md) | Something fails and the cause is not obvious. | The root cause, a fix, and a regression test. |
+| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings from one reviewer per theme (bugs, security, tests…), each confirmed by a validator. |
+| [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
+| [`save‑learning`](skills/save-learning/SKILL.md) | You learned something worth remembering. | A short note in `docs/learnings/` that cites the plan it came from. |
+
+Everything the skills write lives in your repository, as plain Markdown:
 
 ```
-idea ──► make-roadmap ──► make-plan ──► implement-plan ──► deep-review ──► ship-work
-  │        (optional)        ▲   │            │
-  └──► new-ticket ───────────┘   └─ plan-page ├─► follow-ups ──► new-ticket
-                                              └─► lessons ─────► save-learning
+plans/
+├── backlog/        plans, roadmaps and tickets not started yet
+├── in-progress/    being implemented
+└── done/           closed, with results
+docs/
+├── research/       saved research-topic reports
+└── learnings/      save-learning notes
 ```
 
-### Quality
-
-| Skill | What it does |
-| --- | --- |
-| `deep-review` | Asks what to review, runs one reviewer subagent per theme (bugs, security, performance, tests, simplification, conventions, docs quality, outdated docs), and validates every finding before reporting. |
-| `find-bug` | Systematic debugging: reproduce, narrow down, root cause, fix with a regression test. |
-
-### Research, delivery and learning
-
-| Skill | What it does |
-| --- | --- |
-| `research-topic` | Investigates a question without changing code, single agent or with parallel helper subagents as you choose, and answers with evidence and sources. Saves the report only if asked. |
-| `ship-work` | Commits, pushes or opens a pull request: you choose how far. Reviews what goes in, writes messages in the repository's style and the PR description from the plan. |
-| `save-learning` | Keeps a short, reusable lesson in `docs/learnings/`, citing the plan it came from by id. |
-
-In Claude Code every skill is also a slash command (`/make-plan`); in
-opencode the wrappers in `commands/` provide the same. The exception is
-`plans-convention`, which the other skills load on their own and has no
-command.
+A plan's folder holds everything about it: `plan.md`, research, critique,
+page. The layout is defined by `plans-convention`, a supporting skill the
+others load on their own; it has no command.
 
 ## Quick install
 
@@ -107,3 +108,8 @@ python3 -m unittest discover -s tests
 ```
 
 Each skill has behaviour and trigger cases in [evals/](evals/README.md).
+The workflow diagram is generated: after adding or renaming a skill, update
+`scripts/draw_workflow.py` and run it (a test fails while it is outdated).
+
+Every push to `main` that passes CI is released as `YYYY.MM.DD.N` (date in
+Spain, daily counter); see [Releases](https://github.com/Pablomg02/pamaga-agent-toolkit/releases).

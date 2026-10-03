@@ -8,8 +8,9 @@ description: Implement a plan folder, or a small, concrete change the user asks 
 Build exactly what was decided, and prove it works. Design decisions are
 not taken here: they come from the plan or from the user's request. That is
 what lets a small, cheap model implement safely. Whoever writes the code is
-responsible for testing it; there is no separate reviewer, so the evidence
-for every criterion has to be real (a command you ran and its output).
+responsible for testing it: nobody checks the work while it is being built,
+and a later review re-runs the evidence, so the evidence for every
+criterion has to be real (a command you ran and its output).
 
 Load the `plans-convention` skill first when working from a plan.
 `<plans-convention>` below stands for the folder that skill was loaded from.

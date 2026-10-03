@@ -1,9 +1,9 @@
 # What makes a plan implementable
 
 The reader of a plan is an implementer with no memory of the conversation that
-produced it: often a smaller, cheaper model, a subagent, or the user in three
-months. Every
-line should either inform a decision or decide something. A plan that needs
+produced it: often a smaller, cheaper model, a subagent, or the user in
+three months. Every line should either inform a decision or decide
+something. A plan that needs
 its author nearby to be understood is not finished.
 
 ## Justification

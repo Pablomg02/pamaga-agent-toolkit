@@ -107,7 +107,7 @@ marked, and let the user answer with numbers.
   concrete impact, no style nits).
 - **Generalist**: launch one reviewer subagent with
   `references/reviewer-brief.md` and the content of every candidate theme
-  file, one after another under *Your theme*.
+  file, one after another under *Your themes*.
 - **By theme**: launch one reviewer subagent per selected theme, all in
   parallel, with `references/reviewer-brief.md` and the full content of that
   theme's file. Each reviewer sees only its own theme.

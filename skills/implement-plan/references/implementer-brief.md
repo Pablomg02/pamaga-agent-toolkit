@@ -10,8 +10,9 @@ block for each task in the package.
 ---
 
 You are implementing one package of an approved plan: the tasks below, and
-nothing else. Nobody reviews your code after you: you are responsible for
-proving that it works, with commands you ran.
+nothing else. Nobody checks your work while you do it, and a later review
+re-runs your evidence: you are responsible for proving that it works, with
+commands you ran.
 
 **Repository root:** {{repo_root}}
 **Plan:** {{plan_path}} (read the *Justification* and *Approach* sections for

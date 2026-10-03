@@ -19,7 +19,7 @@ from installer import catalog  # noqa: E402  (after sys.path)
 
 # The dependencies described in plans/in-progress/0001-interactive-installer/plan.md.
 EXPECTED_REQUIRES = {
-    "deep-review": set(),
+    "deep-review": {"plans-convention"},
     "find-bug": set(),
     "implement-plan": {"plans-convention"},
     "make-plan": {"plans-convention", "research-topic"},
@@ -28,7 +28,7 @@ EXPECTED_REQUIRES = {
     "plan-page": {"plans-convention"},
     "plans-convention": set(),
     "research-topic": {"plans-convention"},
-    "save-learning": set(),
+    "save-learning": {"plans-convention"},
     "ship-work": {"plans-convention"},
 }
 

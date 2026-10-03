@@ -11,6 +11,8 @@ means for them. Investigating without the pressure to build something keeps
 the conclusion honest; when a decision is made, the report feeds `make-plan`
 or `new-ticket`.
 
+Load the `plans-convention` skill first when the work relates to a plan.
+
 ## 1. Frame the question
 
 Restate the question in one or two sentences, with what the answer will be
@@ -93,8 +95,8 @@ allows.
 ## 4. Save it, if asked
 
 - If the research is for an existing plan, roadmap or ticket, write it to
-  `research/<slug>.md` inside that folder (load the `plans-convention` skill
-  to find it) and link it from the plan.
+  `research/<slug>.md` inside that folder (find it with `plans-convention`)
+  and link it from the plan.
 - Otherwise write `docs/research/<YYYY-MM-DD>-<slug>.md`.
 
 Saved reports are in English, with the question as the title and the date of

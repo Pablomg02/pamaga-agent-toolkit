@@ -12,6 +12,8 @@ person or agent, in a minute. Written down at length or for everything, the
 folder becomes a changelog nobody reads, so the bar matters as much as the
 writing.
 
+Load the `plans-convention` skill first when the work relates to a plan.
+
 ## 1. Decide whether it deserves a note
 
 Find the lesson in the conversation, the plan, the debugging report or the

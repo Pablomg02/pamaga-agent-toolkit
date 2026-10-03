@@ -15,6 +15,8 @@ Review first, fix after. Nothing is changed until the report is out and the
 user has picked what to fix: a reviewer that edits while it reviews starts
 defending its own changes instead of looking for problems.
 
+Load the `plans-convention` skill first when the work relates to a plan.
+
 ## Themes
 
 | Theme | File | Applies when the scope contains |

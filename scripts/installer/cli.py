@@ -29,7 +29,7 @@ from installer.actions import Action, Selection, apply_actions, plan_actions
 from installer.catalog import Catalog, Item, load_catalog
 from installer.harnesses import Harness, all_harnesses
 from installer.state import BACKUP_DIR, Manifest, Status, scan
-from installer.versions import ItemVersion, latest_remote_dev_release, latest_remote_release, pull, pull_status, toolkit_version
+from installer.versions import ItemVersion, latest_remote_dev_commit, latest_remote_release, pull, pull_status, toolkit_version
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -266,7 +266,7 @@ def _remote_hint() -> None:
     """Tell how this clone compares with origin's releases (3 s max per query)."""
     current = toolkit_version(REPO)
     stable = latest_remote_release(REPO, timeout=3.0)
-    dev = latest_remote_dev_release(REPO, timeout=3.0) if current.dev else None
+    dev = latest_remote_dev_commit(REPO, timeout=3.0) if current.dev else None
     lines = versions.channel_notice(current, stable, dev)
     if lines:
         print()
@@ -490,10 +490,10 @@ def build_context(args):
                 return None
             return latest_remote_release(REPO)
 
-        def remote_dev_release() -> Optional[str]:
+        def remote_dev_commit() -> Optional[str]:
             if offline:
                 return None
-            return latest_remote_dev_release(REPO)
+            return latest_remote_dev_commit(REPO)
 
         def guarded_pull_status():
             if offline:
@@ -529,7 +529,7 @@ def build_context(args):
             item_version=version_of,
             apply=apply,
             remote_release=remote_release,
-            remote_dev_release=remote_dev_release,
+            remote_dev_commit=remote_dev_commit,
             pull_status=guarded_pull_status,
             pull=lambda: pull(REPO),
             reload=reload,

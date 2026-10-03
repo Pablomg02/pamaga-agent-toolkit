@@ -41,7 +41,7 @@ class World:
         self.claude.base.mkdir(parents=True, exist_ok=True)
         self.harnesses = [self.opencode, self.claude]
         self.records: dict = {}
-        self.remote = "2099.01.01.1"
+        self.remote = "0.9.1"
         self.pull_status_value = (False, "You have uncommitted changes; run git pull yourself.")
         self.pull_calls = 0
         self.applied = []
@@ -79,7 +79,7 @@ class World:
     def context(self) -> AppContext:
         def item_version(item) -> ItemVersion:
             return ItemVersion(
-                release="2026.10.03.2", commit="18031b4", date="2026-10-02",
+                release="0.2.0", commit="18031b4", date="2026-10-02",
                 subject="reviewed plan.md", local_changes=False,
             )
 
@@ -89,7 +89,7 @@ class World:
 
         return AppContext(
             catalog=self.catalog,
-            toolkit_version=ToolkitVersion(tag="2026.10.03.2", ahead=0, dirty=False, commit="18031b4"),
+            toolkit_version=ToolkitVersion(tag="0.2.0", ahead=0, dirty=False, commit="18031b4"),
             default_mode="link",
             project=self.project,
             harnesses_for=lambda scope: self.harnesses,
@@ -182,7 +182,7 @@ class TuiTest(unittest.TestCase):
 
     def test_splash_shows_version_wordmark_and_harness_summary(self) -> None:
         body = self.text()
-        self.assertIn("2026.10.03.2", body)
+        self.assertIn("0.2.0", body)
         self.assertIn("Macaco giving macacos instructions", body)
         self.assertIn("opencode", body)
         self.assertIn("detected", body)
@@ -246,7 +246,7 @@ class TuiTest(unittest.TestCase):
         self.assertEqual(self.app.chosen, set())
 
     def test_skill_rows_say_what_apply_will_do(self) -> None:
-        self.world.record("opencode", "skill", "make-plan", Status.OUTDATED, mode="copy", version="2026.10.01.1")
+        self.world.record("opencode", "skill", "make-plan", Status.OUTDATED, mode="copy", version="0.1.0")
         self.world.record("opencode", "skill", "find-bug", Status.LINKED, mode="link")
         self.world.record("claude", "skill", "find-bug", Status.LINKED, mode="link")
         self.app = self.fresh()
@@ -325,7 +325,7 @@ class TuiTest(unittest.TestCase):
         self.assertIn("plans-convention", self.app._wanted())
 
     def test_u_selects_exactly_the_outdated_skills(self) -> None:
-        self.world.record("opencode", "skill", "make-plan", Status.OUTDATED, mode="copy", version="2026.10.01.1")
+        self.world.record("opencode", "skill", "make-plan", Status.OUTDATED, mode="copy", version="0.1.0")
         self.app = self.fresh()
         self.at_components()
         self.app.handle("n")
@@ -368,19 +368,19 @@ class TuiTest(unittest.TestCase):
     def test_details_pane_at_110_shows_changed_files(self) -> None:
         self.world.record(
             "opencode", "skill", "make-plan", Status.OUTDATED, mode="copy",
-            version="2026.10.01.1", changed=("~ SKILL.md",),
+            version="0.1.0", changed=("~ SKILL.md",),
         )
         self.app = self.fresh()
         self.at_components()
         self.app.cursor = self.row_index("skill", "make-plan")
         body = self.text(120, 50)
-        self.assertIn("update 2026.10.01.1", body)
+        self.assertIn("update 0.1.0", body)
         self.assertIn("/make-plan", body)
 
     def test_details_full_screen_below_110(self) -> None:
         self.world.record(
             "opencode", "skill", "make-plan", Status.OUTDATED, mode="copy",
-            version="2026.10.01.1", changed=("~ SKILL.md",),
+            version="0.1.0", changed=("~ SKILL.md",),
         )
         self.app = self.fresh()
         self.at_components()
@@ -449,20 +449,20 @@ class TuiTest(unittest.TestCase):
     # -- updates -----------------------------------------------------------
 
     def test_remote_notice_appears_after_tick(self) -> None:
-        self.assertNotIn("2099.01.01.1", self.text())
+        self.assertNotIn("0.9.1", self.text())
         deadline = time.time() + 5
         while self.app.remote is None and time.time() < deadline:
             self.app.tick()
             time.sleep(0.005)
-        self.assertEqual(self.app.remote, "2099.01.01.1")
-        self.assertIn("2099.01.01.1", self.text())
+        self.assertEqual(self.app.remote, "0.9.1")
+        self.assertIn("0.9.1", self.text())
 
     def test_dev_channel_shows_badge_and_notice(self) -> None:
         self.assertNotIn("[dev]", self.app._header(120))
         context = self.world.context()
         context.toolkit_version = ToolkitVersion(
-            tag="2026.10.03.2-dev", ahead=0, dirty=False, commit="18031b4", dev=True)
-        context.remote_dev_release = lambda: "2099.02.01.9-dev"
+            tag="0.2.0", ahead=0, dirty=False, commit="18031b4", dev=True)
+        context.remote_dev_commit = lambda: "deadbeef" * 5
         app = App(context, self.style)
         deadline = time.time() + 5
         while app.remote is None and time.time() < deadline:
@@ -472,8 +472,8 @@ class TuiTest(unittest.TestCase):
         self.assertIn("Development build", "\n".join(app.render(120, 30)))
         app.handle("U")
         dialog = "\n".join(app.dialog["lines"])
-        self.assertIn("newer stable release exists: 2099.01.01.1", dialog)
-        self.assertIn("newer development build is available: 2099.02.01.9-dev", dialog)
+        self.assertIn("newer stable release exists: 0.9.1", dialog)
+        self.assertIn("origin/dev has newer commits (deadbee)", dialog)
 
     def test_pull_refused_shows_reason_and_does_not_pull(self) -> None:
         self.app.handle("U")

@@ -91,26 +91,18 @@ others load on their own; it has no command.
 
 ## Philosophy
 
-Most of what lives here is not about *what* the agent should do, but *how* I
-want it done. These are the instructions and workflows I kept typing over and
-over — the same request, phrased the same way, because it consistently got me
-the result I wanted.
+Simplicity is the point. These skills are not meant to box the agent in with
+rigid restrictions: they nudge it toward a few basic organizational patterns
+that keep the flow from idea to development to validation easy. They are plain,
+model-agnostic Markdown, so the same skill works with any agent or model, and
+when an instruction closes off options or adds ceremony without value, it does
+not belong here.
 
-Writing them down means:
-
-- I no longer re-explain the same thing every session.
-- The behavior stays consistent across projects and conversations.
-- When I find a better way to do something, I improve the skill here and the
-  change applies everywhere from then on.
-
-Above all, simplicity is the point. These skills are not meant to box the
-agent in with rigid restrictions — they only nudge it toward a few basic
-organizational patterns that make the work easier. When an instruction closes
-off too many options or adds ceremony without value, it does not belong here.
-
-They are intentionally model-agnostic: plain Markdown instructions with no
-harness-specific magic, so the same skill works with Claude, DeepSeek, GPT, or
-whatever model a given agent is running.
+One of the fundamental ideas behind these skills is working with two or more
+models at once: I keep decisions with the best model I have (at the time of
+writing, Opus 5.5 with high effort) and leave implementation to a cheap but
+capable one (in this case, DeepSeek v4.1 flash), with as few subagents and
+calls as possible so as not to burn tokens.
 
 ## Update and uninstall
 
@@ -146,7 +138,8 @@ Each skill has behaviour and trigger cases in [evals/](evals/README.md).
 The workflow diagram is generated: after adding or renaming a skill, update
 `scripts/draw_workflow.py` and run it (a test fails while it is outdated).
 
-Every push to `main` that passes CI is released as `YYYY.MM.DD.N` (date in
-Spain, daily counter); see [Releases](https://github.com/Pablomg02/pamaga-agent-toolkit/releases).
-Pushes to `dev` are tagged as dev builds (`YYYY.MM.DD.N-dev`, no GitHub Release)
-for trying changes before they reach `main`.
+Every push to `main` that passes CI is released as `0.MINOR.PATCH` (`MINOR`
+by default, `PATCH` when a commit says `[patch]`); see
+[Releases](https://github.com/Pablomg02/pamaga-agent-toolkit/releases).
+`dev` is the working branch: it has no tags or releases, and its version is
+just its commit.

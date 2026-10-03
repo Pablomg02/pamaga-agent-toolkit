@@ -377,6 +377,19 @@ class TuiTest(unittest.TestCase):
         self.assertIn("update 0.1.0", body)
         self.assertIn("/make-plan", body)
 
+    def test_details_show_what_it_does_not_when_to_load_it(self) -> None:
+        self.at_components()
+        self.app.cursor = self.row_index("skill", "make-plan")
+        body = self.text(120, 50)
+        self.assertIn("Turn a feature", body)
+        self.assertNotIn("Use when", body)
+
+    def test_what_it_does_cuts_the_trigger_sentences(self) -> None:
+        from installer.tui.app import what_it_does
+        self.assertEqual(what_it_does("Do X. Use when the user asks."), "Do X.")
+        self.assertEqual(what_it_does("Where plans live. Load it before x."), "Where plans live.")
+        self.assertEqual(what_it_does("No trigger here."), "No trigger here.")
+
     def test_details_full_screen_below_110(self) -> None:
         self.world.record(
             "opencode", "skill", "make-plan", Status.OUTDATED, mode="copy",

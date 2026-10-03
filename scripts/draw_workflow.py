@@ -53,12 +53,12 @@ NODES = {
     "make-roadmap": (1, "any", "think", "weeks-long goals", "side"),
     "make-plan": (0, "main", "think", "precise plan.md", "core"),
     "new-ticket": (2, "any", "think", "capture for later", "side"),
-    "plan-page": (3, "any", "think", "HTML explainer", "side"),
+    "plan-page": (3, "any", "think", "plan as a web page", "side"),
     "implement-plan": (1, "main", "build", "code + tests, uncommitted", "core"),
     "find-bug": (4, "any", "build", "root cause + test", "side"),
     "deep-review": (2, "main", "check", "findings, then fixes", "core"),
     "ship-work": (3, "main", "deliver", "commit · push · PR", "core"),
-    "save-learning": (5, "any", "keep", "docs/learnings/", "side"),
+    "save-learning": (5, "any", "keep", "lessons worth keeping", "side"),
 }
 
 # Who does each main step (see docs/PHILOSOPHY.md).

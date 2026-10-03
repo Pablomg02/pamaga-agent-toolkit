@@ -104,6 +104,17 @@ def _colour(name: str) -> str:
     return RED if name == "red" else THEME.get(name, THEME["text"])
 
 
+# Skill descriptions end with when the model should load them ("Use when the
+# user says..."). People choosing what to install only need what it does.
+TRIGGER_STARTS = (" Use when ", " Use only when ", " Load it ")
+
+
+def what_it_does(description: str) -> str:
+    """The part of a skill description that says what it does."""
+    cut = min((i for i in (description.find(s) for s in TRIGGER_STARTS) if i > 0), default=len(description))
+    return description[:cut].strip()
+
+
 @dataclass
 class AppContext:
     """Everything the app needs from outside, injectable for tests.
@@ -1070,7 +1081,7 @@ class App:
         lines: List[str] = []
         if item.tagline:
             lines.append(style.fg(item.tagline, stage_colour(item.stage)))
-        lines.extend(wrap(item.description, width))
+        lines.extend(wrap(what_it_does(item.description), width))
         lines.append("")
         version = self.ctx.item_version(item)
 

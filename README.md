@@ -63,9 +63,9 @@ rest you call when you need them.
 
 | Skill | Use it when | You get |
 | --- | --- | --- |
-| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks, verifiable criteria and how to execute them (one agent, or subagents when it pays off), after your questions are answered. An independent critic on request for large plans. |
+| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` precise enough for a cheap model: tasks, checkable criteria, and one agent or several. A critic on request for large plans. |
 | [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready, or a small change is clear enough to build directly. | The code and its tests, with every criterion proven by a command, left uncommitted for you; progress and results logged in the plan if there is one. |
-| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings at the depth you choose (a quick pass, one generalist reviewer, or one reviewer per theme), on the themes that fit what changed, each checked before you see it. Then small fixes applied with tests, and large ones fixed or turned into a plan, as you choose. |
+| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Checked findings at the depth you choose; small fixes applied with tests, large ones fixed or turned into a plan. |
 | [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
 | [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. One agent by default, several in parallel only when the question splits; saved only if you ask. |
 | [`make‑roadmap`](skills/make-roadmap/SKILL.md) | The goal takes weeks or months. | A roadmap: milestones with exit criteria and the plans to derive from them. |

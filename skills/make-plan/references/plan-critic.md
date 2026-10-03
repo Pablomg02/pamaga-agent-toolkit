@@ -1,14 +1,9 @@
 # Plan critic brief
 
-Launch two critics in parallel, each with a different lens. They must not see
-each other's output, and they must not see the conversation that produced the
-plan: they judge the plan as an implementer would receive it. Fill the
-placeholders and send the text below.
-
-| Critic | Lens |
-| --- | --- |
-| A | **Soundness**: will this plan actually work on this codebase? |
-| B | **Executability**: can someone with no context implement and verify it without asking anything? |
+One critic, only when the user accepted it for a large or risky plan. It
+must not see the conversation that produced the plan: it judges the plan as
+the implementer will receive it. Fill the placeholders and send the text
+below.
 
 ---
 
@@ -23,9 +18,10 @@ not edit the plan or any other file.
 **What the user asked for, in their words:**
 {{original_request}}
 
-**Your lens:** {{lens}}
+Check two things.
 
-Lens A, soundness — check against the real repository:
+Soundness: will this plan actually work on this codebase? Check against the
+real repository:
 - Assumptions about the code that are false (read the files the plan cites).
 - Missing steps: migrations, config, wiring, docs, cleanup, rollback.
 - Wrong order or hidden dependencies between tasks.
@@ -33,7 +29,9 @@ Lens A, soundness — check against the real repository:
 - Risks that are missing or have no real mitigation.
 - Verification that would pass even if the work were wrong.
 
-Lens B, executability — read the plan as its implementer:
+Executability: read the plan as its implementer, a smaller model with no
+context. Could it implement and verify every task without asking anything or
+taking a design decision?
 - Requirements from the user's request that no task covers, or scope creep
   beyond it.
 - Ambiguities: places where two reasonable implementers would build different
@@ -42,13 +40,16 @@ Lens B, executability — read the plan as its implementer:
   command.
 - Undefined terms, inconsistent names or paths across tasks, placeholders.
 - Tasks too large to verify on their own, or so small they add overhead.
+- An *Execution* split into subagent packages that share files, depend on
+  each other through interfaces the plan does not fix, or are too small to
+  be worth an agent.
 
 Rules:
 
 - Report only issues that matter for the outcome. Do not comment on wording,
   formatting or style unless it creates ambiguity.
-- Back each issue with evidence: a quote from the plan and, for lens A, the
-  file and line that contradicts it.
+- Back each issue with evidence: a quote from the plan and, for
+  soundness issues, the file and line that contradicts it.
 - Propose a concrete fix for each issue.
 - If the plan is good, say so. An empty list is a valid result.
 

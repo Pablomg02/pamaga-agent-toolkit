@@ -13,25 +13,24 @@ project**.
 ## Quick install
 
 You need a coding agent ([Claude Code](https://claude.com/claude-code) or
-[opencode](https://opencode.ai)), Python 3.9+ and the
-[GitHub CLI](https://cli.github.com) (`gh`).
+[opencode](https://opencode.ai)), Python 3.9+ and [Git](https://git-scm.com).
 
 **Linux or macOS**
 
 ```bash
-gh repo clone Pablomg02/pamaga-agent-toolkit
+git clone https://github.com/Pablomg02/pamaga-agent-toolkit.git
 cd pamaga-agent-toolkit && ./scripts/install.sh
 ```
 
 **Windows** (PowerShell)
 
 ```powershell
-gh repo clone Pablomg02/pamaga-agent-toolkit
+git clone https://github.com/Pablomg02/pamaga-agent-toolkit.git
 cd pamaga-agent-toolkit; python scripts\install.py
 ```
 
 Want the **detailed step-by-step**, a **manual installation**, or have **no
-experience with this kind of thing** (no `gh`, no git)? Go to
+experience with this kind of thing** (no git)? Go to
 [INSTALL.md](INSTALL.md).
 
 ## Your first minute
@@ -39,8 +38,9 @@ experience with this kind of thing** (no `gh`, no git)? Go to
 1. Run the installer, accept the defaults, and **restart your agent**.
 2. Open your agent in any project and type `/make-plan`, or just say
    *"plan a CSV export for this project"*.
-3. The agent asks you questions, drafts a `plan.md` under `plans/backlog/`,
-   and has it challenged by two independent critics before you approve it.
+3. The agent reads the code, asks you questions until nothing is ambiguous,
+   and drafts a `plan.md` under `plans/backlog/` precise enough for a cheap
+   model to implement.
 
 Every skill works the same way: say what you want in plain words, or call it
 as a slash command. You do not need to learn them upfront; the table below
@@ -51,27 +51,27 @@ shows what each one is for.
 Ten skills that cover the life of a change, from the first question to the
 pull request. You do not need to remember them: each one loads on its own
 when your request matches ("plan the CSV export", "ship it"), and each one is
-also a slash command (`/make-plan`). The table follows the diagram, stage by
-stage.
+also a slash command (`/make-plan`). Four of them are the main flow; the
+rest you call when you need them.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/workflow-dark.svg">
-    <img src="images/workflow-light.svg" alt="Workflow: research-topic and new-ticket feed make-roadmap and make-plan; make-plan, implement-plan, deep-review and ship-work are the main flow; plan-page, find-bug and save-learning plug in." width="100%">
+    <img src="images/workflow-light.svg" alt="Main flow: make-plan with the best model, implement-plan with a cheap model, deep-review with the best model, then ship-work; large fixes go back to a plan. At any point: research-topic, make-roadmap, new-ticket, plan-page, find-bug and save-learning." width="100%">
   </picture>
 </p>
 
 | Skill | Use it when | You get |
 | --- | --- | --- |
-| [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. Single or multi agent, as you choose; saved only if you ask. |
+| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` precise enough for a cheap model: tasks, checkable criteria, and one agent or several. A critic on request for large plans. |
+| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready, or a small change is clear enough to build directly. | The code and its tests, with every criterion proven by a command, left uncommitted for you; progress and results logged in the plan if there is one. |
+| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Checked findings at the depth you choose; small fixes applied with tests, large ones fixed or turned into a plan. |
+| [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
+| [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. One agent by default, several in parallel only when the question splits; saved only if you ask. |
 | [`make‑roadmap`](skills/make-roadmap/SKILL.md) | The goal takes weeks or months. | A roadmap: milestones with exit criteria and the plans to derive from them. |
-| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks and verifiable criteria, after your questions are answered and two independent critics have challenged it. |
 | [`new‑ticket`](skills/new-ticket/SKILL.md) | Something should be done, but not now. | A ticket in the backlog, in a minute. |
 | [`plan‑page`](skills/plan-page/SKILL.md) | You want to read or share a plan at a glance. | A self-contained `plan.html` in the plan's folder. |
-| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready. | The code, built by subagents in small waves and checked by an independent verifier, with progress logged in the plan. |
 | [`find‑bug`](skills/find-bug/SKILL.md) | Something fails and the cause is not obvious. | The root cause, a fix, and a regression test. |
-| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings from one reviewer per theme (bugs, security, tests…), each confirmed by a validator. |
-| [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
 | [`save‑learning`](skills/save-learning/SKILL.md) | You learned something worth remembering. | A short note in `docs/learnings/` that cites the plan it came from. |
 
 Everything the skills write lives in your repository, as plain Markdown:
@@ -92,26 +92,21 @@ others load on their own; it has no command.
 
 ## Philosophy
 
-Most of what lives here is not about *what* the agent should do, but *how* I
-want it done. These are the instructions and workflows I kept typing over and
-over — the same request, phrased the same way, because it consistently got me
-the result I wanted.
+Simplicity is the point. These skills are not meant to box the agent in with
+rigid restrictions: they nudge it toward a few basic organizational patterns
+that keep the flow from idea to development to validation easy. They are plain,
+model-agnostic Markdown, so the same skill works with any agent or model, and
+when an instruction closes off options or adds ceremony without value, it does
+not belong here.
 
-Writing them down means:
+One of the fundamental ideas behind these skills is working with two or more
+models at once: I keep decisions with the best model I have (at the time of
+writing, Opus 5.5 with high effort) and leave implementation to a cheap but
+capable one (in this case, DeepSeek v4.1 flash), with as few subagents and
+calls as possible so as not to burn tokens.
 
-- I no longer re-explain the same thing every session.
-- The behavior stays consistent across projects and conversations.
-- When I find a better way to do something, I improve the skill here and the
-  change applies everywhere from then on.
-
-Above all, simplicity is the point. These skills are not meant to box the
-agent in with rigid restrictions — they only nudge it toward a few basic
-organizational patterns that make the work easier. When an instruction closes
-off too many options or adds ceremony without value, it does not belong here.
-
-They are intentionally model-agnostic: plain Markdown instructions with no
-harness-specific magic, so the same skill works with Claude, DeepSeek, GPT, or
-whatever model a given agent is running.
+Why that is safe, and how the skills are shaped around it, is in
+[docs/PHILOSOPHY.md](docs/PHILOSOPHY.md).
 
 ## Update and uninstall
 
@@ -147,7 +142,8 @@ Each skill has behaviour and trigger cases in [evals/](evals/README.md).
 The workflow diagram is generated: after adding or renaming a skill, update
 `scripts/draw_workflow.py` and run it (a test fails while it is outdated).
 
-Every push to `main` that passes CI is released as `YYYY.MM.DD.N` (date in
-Spain, daily counter); see [Releases](https://github.com/Pablomg02/pamaga-agent-toolkit/releases).
-Pushes to `dev` are tagged as dev builds (`YYYY.MM.DD.N-dev`, no GitHub Release)
-for trying changes before they reach `main`.
+Every push to `main` that passes CI is released as `0.MINOR.PATCH` (`MINOR`
+by default, `PATCH` when a commit says `[patch]`); see
+[Releases](https://github.com/Pablomg02/pamaga-agent-toolkit/releases).
+`dev` is the working branch: it has no tags or releases, and its version is
+just its commit.

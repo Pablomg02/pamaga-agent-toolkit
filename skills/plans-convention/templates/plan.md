@@ -24,8 +24,9 @@ evidence, and what happens if nothing is done. -->
 
 ### Context
 
-<!-- What the existing code or system looks like today, with file paths.
-Link research artifacts stored in this folder, e.g. research/auth-libs.md. -->
+<!-- What the existing code or system looks like today, with file paths,
+and the project's test, lint and build commands. Link research artifacts
+stored in this folder, e.g. research/auth-libs.md. -->
 
 ### Approach
 
@@ -48,6 +49,14 @@ with the reason. -->
 - **Acceptance criteria:**
   - [ ]
 
+### Execution
+
+<!-- "Mode: single agent" (the default), or "Mode: subagents" with one line
+per package: tasks, files (disjoint), interfaces, what can run at the same
+time (at most three), and why the split is worth it. -->
+
+Mode: single agent
+
 ### Verification
 
 <!-- How the whole plan is proven done: commands to run, behaviour to
@@ -65,8 +74,8 @@ observe, criteria that span several tasks. -->
 
 ## Implementation
 
-<!-- Filled during implementation: git policy, baseline, a progress ledger
-with one line per task, and any deviation from the plan with its reason. -->
+<!-- Filled during implementation: baseline, a progress ledger with one line
+per task and its evidence, and any deviation from the plan with its reason. -->
 
 ## Results
 

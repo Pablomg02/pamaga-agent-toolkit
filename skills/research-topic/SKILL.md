@@ -1,6 +1,6 @@
 ---
 name: research-topic
-description: Investigate a question without changing any code - how something works in this repository, whether a library or approach fits, what the options and trade-offs are - and answer with evidence and sources. Runs single-agent or multi-agent (parallel explorer and researcher subagents) as the user chooses, and saves the report only if asked. Use when the user asks to research, investigate, explore, compare or find out something ("can we use X?", "how does Y work here?", "what are the options for Z?", a spike) before deciding anything. Not for planning a change (make-plan), debugging a known failure (find-bug) or reviewing code (deep-review).
+description: Investigate a question without changing any code - how something works in this repository, whether a library or approach fits, what the options and trade-offs are - and answer with evidence and sources. Works as a single agent by default, offers parallel explorer and researcher subagents only when the question splits into several independent ones, and saves the report only if asked. Use when the user asks to research, investigate, explore, compare or find out something ("can we use X?", "how does Y work here?", "what are the options for Z?", a spike) before deciding anything. Not for planning a change (make-plan), debugging a known failure (find-bug) or reviewing code (deep-review).
 ---
 
 # Research a topic
@@ -18,16 +18,18 @@ used for (a decision, a plan, curiosity) and the constraints already known
 (versions, platform, licences, budget). If the question is vague, split it
 into the concrete sub-questions that would answer it and show them.
 
-Then settle two things, unless the user already said:
+Then pick the mode, unless the user already said:
 
-| Choice | Options |
-| --- | --- |
-| Mode | **Single agent**: you investigate yourself, in order. Best for one focused question or a small repository. **Multi agent**: one helper subagent per independent sub-question, in parallel. Best when there are several independent questions, or code and web research at once. |
-| Output | **Chat only** (default): the report in the conversation. **Saved**: also written to a file (see step 4). |
+- **Single agent** (the default): you investigate yourself, in order. Use it
+  without asking for one focused question or a small repository.
+- **Multi agent**: one helper subagent per independent sub-question, in
+  parallel. Only worth it when there are several independent questions that
+  each take real digging, or code and web research at once. Then ask, with
+  your recommendation and what it costs ("multi agent: three independent
+  questions, three subagents"). If the harness has no subagents, work single
+  agent.
 
-Ask both in one batch, with your recommendation first and why (for example
-"multi agent: three independent questions"). If the harness has no
-subagents, say so and work single agent.
+The report goes to chat. Save it only if the user asks (step 4).
 
 ## 2. Investigate
 

@@ -1,8 +1,9 @@
 # What makes a plan implementable
 
 The reader of a plan is an implementer with no memory of the conversation that
-produced it: another agent, a subagent, or the user in three months. Every
-line should either inform a decision or decide something. A plan that needs
+produced it: often a smaller, cheaper model, a subagent, or the user in
+three months. Every line should either inform a decision or decide
+something. A plan that needs
 its author nearby to be understood is not finished.
 
 ## Justification
@@ -17,6 +18,8 @@ its author nearby to be understood is not finished.
 
 - Cites real paths, functions and commands found in the repository, not
   guesses. If something was not verified, say so.
+- Gives the project's test, lint and build commands, so the implementer
+  does not have to look for them.
 - Links research artifacts stored in the plan folder (`research/*.md`) instead
   of pasting them.
 
@@ -26,7 +29,7 @@ its author nearby to be understood is not finished.
   the reason. A future reader should not reopen a settled discussion.
 - Every choice the implementer could otherwise make differently is in the
   *Decisions* table with its source: `user` (asked and answered), `research`
-  (backed by an artifact) or `review` (came from a critic).
+  (backed by an artifact) or `review` (came from the critic).
 
 ## Tasks
 
@@ -37,7 +40,7 @@ Each one has:
 - **Files**: exact paths to create or modify. A task whose files are unknown
   is not ready.
 - **Depends on**: the task ids that must be finished first, or `—`.
-- **Acceptance criteria**: checkboxes a verifier can confirm by reading files
+- **Acceptance criteria**: checkboxes the implementer can prove by reading files
   or running a command, without asking anyone. Prefer criteria with an exact
   command and expected result:
   - good: "`pytest tests/test_auth.py` passes, including a new test for an
@@ -56,6 +59,14 @@ Sizing:
   rest of the plan.
 - Names, signatures and paths introduced in one task are spelled exactly the
   same in every later task that uses them.
+
+## Execution
+
+- States the mode: `single agent` (the default) or `subagents`.
+- With subagents, lists each package: its tasks, its files (disjoint from
+  every other package), the interfaces it consumes or produces, and which
+  packages can run at the same time (at most three). One sentence says why
+  the split is worth it.
 
 ## Verification
 
@@ -78,7 +89,8 @@ a public signature, a config value).
 
 ## Self-review checklist
 
-Run this before sending the plan to the critics:
+Run this before handing the plan off (and before the critic, if there is
+one):
 
 1. Every part of the user's request maps to a goal and to at least one task,
    or is listed as a non-goal.
@@ -89,3 +101,8 @@ Run this before sending the plan to the critics:
 5. Dependencies form no cycle and the order makes sense.
 6. Every decision made in the conversation is in the *Decisions* table.
 7. *Open questions* is empty.
+8. *Context* gives the test, lint and build commands.
+9. No task leaves a design choice to the implementer: a smaller model could
+   follow it step by step and prove each criterion with a command.
+10. *Execution* names a mode; subagent packages share no files and are each
+    worth an agent.

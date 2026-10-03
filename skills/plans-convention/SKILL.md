@@ -21,7 +21,7 @@ plans/
     └── 0007-add-login/
         ├── plan.md         # canonical document, always present
         ├── plan.html       # optional explainer page (plan-page skill)
-        ├── plan-review.md  # optional: critiques and how they were handled
+        ├── plan-review.md  # optional: the critique and how it was handled
         └── research/       # optional: notes, references, images
 ```
 
@@ -64,8 +64,8 @@ parent: "0003"        # optional: the roadmap this derives from
 # 0007 — Add login
 
 ## Justification    why the work exists, goals and non-goals
-## Plan             context, approach, decisions, tasks, verification, risks
-## Implementation   filled while implementing: git policy, ledger, deviations
+## Plan             context, approach, decisions, tasks, execution, verification, risks
+## Implementation   filled while implementing: baseline, ledger, deviations
 ## Results          what was delivered, with evidence
 ## Closure          date, outcome, follow-ups by id
 ```

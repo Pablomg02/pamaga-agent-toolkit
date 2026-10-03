@@ -33,13 +33,13 @@ EXPECTED_REQUIRES = {
 }
 
 EXPECTED_SKILL_ORDER = [
-    "make-roadmap",
     "research-topic",
+    "make-roadmap",
     "make-plan",
     "new-ticket",
     "plan-page",
-    "find-bug",
     "implement-plan",
+    "find-bug",
     "deep-review",
     "ship-work",
     "save-learning",
@@ -73,7 +73,7 @@ class RealRepoTest(unittest.TestCase):
         self.assertIsNotNone(item)
         self.assertTrue(item.user_invocable)
         self.assertEqual(item.stage, "think")
-        self.assertEqual(item.tagline, "reviewed plan.md")
+        self.assertEqual(item.tagline, "precise plan.md")
         self.assertTrue(item.description.startswith("Turn a feature"))
         self.assertIn("SKILL.md", item.files)
         self.assertTrue(item.content_hash.startswith("sha256:"))

@@ -65,7 +65,7 @@ def make_item(repo: Path, kind: str, name: str, requires=(), user_invocable: boo
     )
 
 
-def stub_versions(label: str = "2026.10.03.2"):
+def stub_versions(label: str = "0.2.0"):
     """A `versions` callable that never touches git."""
 
     def item_version(item: Item) -> ItemVersion:
@@ -141,7 +141,7 @@ class ToolkitFixture(unittest.TestCase):
             force=frozenset(force),
         )
 
-    def plan(self, selection: Selection, scans=None, label: str = "2026.10.03.2"):
+    def plan(self, selection: Selection, scans=None, label: str = "0.2.0"):
         return plan_actions(
             self.catalog, self.harnesses, scans or {}, selection, stub_versions(label)
         )
@@ -197,7 +197,7 @@ class PlanningTableTest(ToolkitFixture):
         self.assertFalse(action.backup)
         self.assertEqual(action.target, self.opencode.base / "skills" / "alpha")
         self.assertIsNone(action.from_version)
-        self.assertEqual(action.to_version, "2026.10.03.2")
+        self.assertEqual(action.to_version, "0.2.0")
         self.assertTrue(action.reason)
 
     def test_wanted_and_installed_in_the_chosen_mode_keeps(self) -> None:
@@ -207,7 +207,7 @@ class PlanningTableTest(ToolkitFixture):
                 scans = {
                     "opencode": {
                         "skill/alpha": self.placed(
-                            self.opencode, self.alpha, status, mode=mode, version="2026.10.01.1"
+                            self.opencode, self.alpha, status, mode=mode, version="0.1.0"
                         )
                     }
                 }
@@ -266,7 +266,7 @@ class PlanningTableTest(ToolkitFixture):
         scans = {
             "opencode": {
                 "skill/alpha": self.placed(
-                    self.opencode, self.alpha, Status.OUTDATED, mode="copy", version="2026.10.01.1"
+                    self.opencode, self.alpha, Status.OUTDATED, mode="copy", version="0.1.0"
                 )
             }
         }
@@ -275,8 +275,8 @@ class PlanningTableTest(ToolkitFixture):
         self.assertEqual(action.op, "update")
         self.assertEqual(action.mode, "copy")
         self.assertFalse(action.backup)
-        self.assertEqual(action.from_version, "2026.10.01.1")
-        self.assertEqual(action.to_version, "2026.10.03.2")
+        self.assertEqual(action.from_version, "0.1.0")
+        self.assertEqual(action.to_version, "0.2.0")
 
     def test_wanted_modified_unmanaged_or_foreign_skips_without_force(self) -> None:
         cases = (
@@ -293,7 +293,7 @@ class PlanningTableTest(ToolkitFixture):
                             self.alpha,
                             status,
                             mode=installed_mode,
-                            version="2026.10.01.1",
+                            version="0.1.0",
                         )
                     }
                 }
@@ -319,7 +319,7 @@ class PlanningTableTest(ToolkitFixture):
                             self.alpha,
                             status,
                             mode=installed_mode,
-                            version="2026.10.01.1",
+                            version="0.1.0",
                         )
                     }
                 }
@@ -329,7 +329,7 @@ class PlanningTableTest(ToolkitFixture):
                 action = self.action_for(self.plan(selection, scans), "skill/alpha")
                 self.assertEqual(action.op, op)
                 self.assertTrue(action.backup)
-                self.assertEqual(action.to_version, "2026.10.03.2")
+                self.assertEqual(action.to_version, "0.2.0")
 
     def test_not_wanted_managed_is_removed_with_prune_and_kept_without_it(self) -> None:
         cases = (
@@ -346,7 +346,7 @@ class PlanningTableTest(ToolkitFixture):
                             self.alpha,
                             status,
                             mode=installed_mode,
-                            version="2026.10.01.1",
+                            version="0.1.0",
                         )
                     }
                 }
@@ -357,7 +357,7 @@ class PlanningTableTest(ToolkitFixture):
                 )
                 self.assertEqual(removed.op, "remove")
                 self.assertFalse(removed.backup)
-                self.assertEqual(removed.from_version, "2026.10.01.1")
+                self.assertEqual(removed.from_version, "0.1.0")
 
     def test_not_wanted_hand_made_identical_copy_is_never_pruned(self) -> None:
         scans = {
@@ -391,7 +391,7 @@ class PlanningTableTest(ToolkitFixture):
         scans = {
             "opencode": {
                 "skill/alpha": self.placed(
-                    self.opencode, self.alpha, Status.MODIFIED, mode="copy", version="2026.10.01.1"
+                    self.opencode, self.alpha, Status.MODIFIED, mode="copy", version="0.1.0"
                 )
             }
         }
@@ -414,7 +414,7 @@ class PlanningTableTest(ToolkitFixture):
             target=self.opencode.base / "skills" / "gone",
             status=Status.ORPHANED,
             mode="copy",
-            installed_version="2026.10.01.1",
+            installed_version="0.1.0",
             link_target=None,
             changed_files=(),
         )
@@ -584,7 +584,7 @@ class ApplyFixture(ToolkitFixture):
             for harness in self.harnesses
         }
 
-    def plan_now(self, selection: Selection, scans=None, label: str = "2026.10.03.2"):
+    def plan_now(self, selection: Selection, scans=None, label: str = "0.2.0"):
         return plan_actions(
             self.catalog,
             self.harnesses,
@@ -598,7 +598,7 @@ class ApplyFixture(ToolkitFixture):
             actions, self.catalog, self.harnesses, now=self.now, on_progress=on_progress
         )
 
-    def run_plan(self, selection: Selection, scans=None, label: str = "2026.10.03.2"):
+    def run_plan(self, selection: Selection, scans=None, label: str = "0.2.0"):
         actions = self.plan_now(selection, scans, label)
         return actions, self.apply(actions)
 
@@ -626,7 +626,7 @@ class ApplyLifecycleTest(ApplyFixture):
         manifest = Manifest.load(self.opencode.base)
         self.assertEqual(manifest.repo, self.repo)
         self.assertEqual(manifest.get("skill/alpha")["mode"], "link")
-        self.assertEqual(manifest.get("skill/alpha")["version"], "2026.10.03.2")
+        self.assertEqual(manifest.get("skill/alpha")["version"], "0.2.0")
         self.assertEqual(sorted(manifest.items), ["command/alpha", "command/beta", "skill/alpha", "skill/beta"])
         self.assert_only_keeps(selection)
 
@@ -649,20 +649,20 @@ class ApplyLifecycleTest(ApplyFixture):
         write(self.repo / "skills" / "alpha" / "SKILL.md", "alpha two\n")
         self.reload_items()
         selection = self.select(skills={"alpha", "beta"}, commands=True, mode="copy")
-        actions, results = self.run_plan(selection, label="2026.10.04.1")
+        actions, results = self.run_plan(selection, label="0.3.0")
         update = [a for a in actions if a.op != "keep"]
         self.assertEqual(len(update), 1)
         self.assertEqual(update[0].kind, "skill")
         self.assertEqual(update[0].name, "alpha")
         self.assertEqual(update[0].op, "update")
-        self.assertEqual(update[0].from_version, "2026.10.03.2")
-        self.assertEqual(update[0].to_version, "2026.10.04.1")
+        self.assertEqual(update[0].from_version, "0.2.0")
+        self.assertEqual(update[0].to_version, "0.3.0")
         self.assertTrue(all(result.ok for result in results))
         self.assertEqual((alpha / "SKILL.md").read_text(encoding="utf-8"), "alpha two\n")
         self.assertEqual(content_hash(alpha), self.alpha.content_hash)
         manifest = Manifest.load(self.opencode.base)
         self.assertEqual(manifest.get("skill/alpha")["hash"], self.alpha.content_hash)
-        self.assertEqual(manifest.get("skill/alpha")["version"], "2026.10.04.1")
+        self.assertEqual(manifest.get("skill/alpha")["version"], "0.3.0")
         self.assertEqual(scan(self.catalog, self.opencode, manifest)["skill/alpha"].status, Status.UP_TO_DATE)
         self.assert_only_keeps(selection)
 
@@ -843,7 +843,7 @@ class OrphanCleanupTest(ApplyFixture):
             "skill/gone",
             mode="copy",
             hash="sha256:whatever",
-            version="2026.10.01.1",
+            version="0.1.0",
             commit=None,
             installed_at="2026-10-01T10:00:00+02:00",
         )
@@ -910,11 +910,11 @@ class ApplySoftFailureTest(ApplyFixture):
     def test_unknown_harness_and_unknown_item_fail_softly(self) -> None:
         unknown_harness = Action(
             "install", "nope", "skill", "alpha", self.root / "elsewhere", "link", False, None,
-            "2026.10.03.2", "not installed",
+            "0.2.0", "not installed",
         )
         unknown_item = Action(
             "install", "opencode", "skill", "ghost",
-            self.opencode.base / "skills" / "ghost", "copy", False, None, "2026.10.03.2",
+            self.opencode.base / "skills" / "ghost", "copy", False, None, "0.2.0",
             "not installed",
         )
         results = self.apply([unknown_harness, unknown_item])

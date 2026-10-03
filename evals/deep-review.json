@@ -4,50 +4,115 @@
     {
       "id": 1,
       "prompt": "Review my changes.",
-      "expected_output": "The agent detects the uncommitted and branch changes, lets the user pick individual themes in a two-question poll with recommended ones marked (and confirms the detected scope), runs one reviewer per selected theme in parallel, validates findings with separate validators, and reports only confirmed or plausible findings ordered by severity.",
+      "expected_output": "The changes mix new code in two modules and a README update. The agent detects the scope, picks candidate themes from what changed (no Performance for the README part unless relevant), asks for the depth recommending generalist, and with generalist runs one reviewer subagent with the candidate themes, validates its findings itself, and reports only findings that survived.",
       "files": [],
       "expectations": [
         "Detects the scope and offers it as the recommended option with its size",
-        "Asks which themes to review with a poll of individual themes (two multiple-choice questions), recommended ones marked",
-        "Launches one reviewer per selected theme, each with only its theme",
-        "Validates findings with validators that did not produce them",
-        "Rejected findings do not appear in the report",
+        "Asks for the depth with a recommendation, since the change is mixed",
+        "Only offers themes that apply to what changed",
+        "With generalist depth, launches exactly one reviewer subagent",
+        "Re-reads the code to validate every finding before reporting",
         "Every finding has a location, impact and fix",
         "Does not modify code"
       ]
     },
     {
       "id": 2,
-      "prompt": "Look for performance problems and bugs in src/importer/.",
-      "expected_output": "Scope and themes are both given, so the agent asks nothing and reviews src/importer/ in full with the bugs and performance reviewers.",
+      "prompt": "Review the wording changes I made to docs/usage.md.",
+      "expected_output": "A small prose-only change: the agent does a quick review itself without asking for depth and without subagents, only with documentation themes, and says it can go deeper if asked.",
       "files": [],
       "expectations": [
-        "Does not ask about scope or themes",
-        "Runs only the bugs and performance reviewers",
-        "Reviews the whole folder, not just a diff"
+        "Does not ask for the depth",
+        "Does not launch subagents",
+        "Does not apply code themes such as Performance, Security or Design",
+        "Mentions in one line that a deeper review is available"
       ]
     },
     {
       "id": 3,
+      "prompt": "Review src/auth/ by theme: bugs and security, and also check that the error messages are consistent.",
+      "expected_output": "Scope, depth and themes are given, plus a custom concern. The agent asks nothing, runs three reviewers in parallel (bugs, security, the user's concern), sends the findings to validator subagents, and reports.",
+      "files": [],
+      "expectations": [
+        "Does not ask about scope, depth or themes",
+        "Runs one reviewer per theme, including one for the user's own concern",
+        "Validates with validators that did not produce the findings",
+        "Rejected findings do not appear in the report"
+      ]
+    },
+    {
+      "id": 4,
       "prompt": "Can you audit this repo? Clean code base, I just want to know if there's anything wrong.",
-      "expected_output": "The agent warns that a whole-repository review is expensive, asks for themes, and when nothing survives validation it says so plainly without padding the report.",
+      "expected_output": "The agent warns that a whole-repository review is expensive, asks for the depth, and when nothing survives validation it says so plainly without padding the report.",
       "files": [],
       "expectations": [
         "Warns about cost and risk-based prioritisation for a whole-repo scope",
         "Reports 'no findings' plainly when validation rejects everything",
         "Lists what was not covered"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Review the work on plan 0008 before I commit it.",
+      "expected_output": "The scope is the uncommitted changes from plan 0008. Besides the review at the chosen depth, the agent re-runs the plan's Verification commands and the criteria marked done, compares the ledger with the diff, and reports as a finding any criterion whose command fails or any ledger claim the diff does not back.",
+      "files": [],
+      "expectations": [
+        "Re-runs the plan's Verification commands itself",
+        "Compares the Implementation ledger with the diff",
+        "Reports a criterion marked done whose command fails as a high or critical finding"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Review my changes in src/export/ and fix what you find.",
+      "expected_output": "The agent reviews, validates and reports first. Since the user asked to fix, it fixes the small confirmed findings without asking again; for a finding whose fix changes a public interface it asks whether to fix it now, write a fix plan with make-plan, or open a ticket. It writes a failing test before each behaviour fix, runs the full suite, leaves the changes uncommitted and reports what was fixed and what was not.",
+      "files": [],
+      "expectations": [
+        "Reports the findings before changing any code",
+        "Fixes the small confirmed findings without asking again",
+        "For the large fix, asks between fixing now, make-plan and a ticket",
+        "Writes a test that fails before each behaviour fix",
+        "Runs the full test suite after the fixes",
+        "Leaves the fixes uncommitted"
+      ]
     }
   ],
   "trigger_evals": [
-    {"query": "review my changes before I open the PR", "should_trigger": true},
-    {"query": "can you do a thorough code review of the payments module?", "should_trigger": true},
-    {"query": "check this branch for optimisation opportunities and bugs", "should_trigger": true},
-    {"query": "is the documentation still in sync with the code after my refactor?", "should_trigger": true},
-    {"query": "audit the repo for security issues", "should_trigger": true},
-    {"query": "the app crashes when I upload an empty file, find out why", "should_trigger": false},
-    {"query": "review this plan before I implement it", "should_trigger": false},
-    {"query": "write a review of the movie Dune", "should_trigger": false},
-    {"query": "refactor this function to be simpler", "should_trigger": false}
+    {
+      "query": "review my changes before I open the PR",
+      "should_trigger": true
+    },
+    {
+      "query": "can you do a thorough code review of the payments module?",
+      "should_trigger": true
+    },
+    {
+      "query": "check this branch for optimisation opportunities and bugs",
+      "should_trigger": true
+    },
+    {
+      "query": "is the documentation still in sync with the code after my refactor?",
+      "should_trigger": true
+    },
+    {
+      "query": "audit the repo for security issues",
+      "should_trigger": true
+    },
+    {
+      "query": "the app crashes when I upload an empty file, find out why",
+      "should_trigger": false
+    },
+    {
+      "query": "review this plan before I implement it",
+      "should_trigger": false
+    },
+    {
+      "query": "write a review of the movie Dune",
+      "should_trigger": false
+    },
+    {
+      "query": "refactor this function to be simpler",
+      "should_trigger": false
+    }
   ]
 }

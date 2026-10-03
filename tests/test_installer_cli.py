@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import pty
-import re
 import select
 import subprocess
 import sys
@@ -144,9 +143,9 @@ class InstallCliTest(CliTest):
         self.assertEqual(result.returncode, 0, result.stderr)
         label = result.stdout.strip()
         self.assertTrue(label, "empty --version output")
-        self.assertTrue(
-            re.match(r"^\d{4}\.\d{2}\.\d{2}\.\d+(-dev)?(\+\d+)?( \(dev\))?( \(modified\))?$", label) or label.startswith("dev ("),
+        self.assertRegex(
             label,
+            r"^(\d+\.\d+\.\d+(\+\d+)?( \(dev\))?|dev \([0-9a-f]+\))( \(modified\))?$",
         )
 
     def test_no_tty_and_no_flags_prints_usage_and_exits_two(self) -> None:

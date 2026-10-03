@@ -58,12 +58,6 @@ experiment whose result would rule it out, run it, and record the outcome in
 a short log (hypothesis → experiment → result). Test one hypothesis at a
 time; changing several things at once tells you nothing.
 
-When several hypotheses are independent and each takes real effort to check,
-you may launch read-only subagents in parallel (the harness's general-purpose
-agent), one per hypothesis, each with the symptom, the reproduction, the
-hypothesis and the experiment to run, asking for the evidence found and a
-verdict (confirmed / ruled out / inconclusive).
-
 ## 5. Root cause
 
 You have the root cause when you can explain the full chain from the

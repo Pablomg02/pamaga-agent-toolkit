@@ -1,12 +1,14 @@
 # Reviewer brief
 
-Send one reviewer per theme. Fill the placeholders, paste the full content of
-the theme file (`themes/<theme>.md`) where indicated, and send the text below.
+For a review by theme, send one reviewer per theme with that theme's file.
+For a generalist review, send one reviewer with every candidate theme file
+under *Your themes*. Fill the placeholders and send the text below. In a
+quick review, follow the *How to work* rules yourself.
 
 ---
 
-You are reviewing code for one theme only. Other reviewers cover the other
-themes, so stay inside yours. You do not modify any file.
+You are reviewing code for the themes below only; stay inside them. You do
+not modify any file.
 
 **Repository root:** {{repo_root}}
 
@@ -26,9 +28,9 @@ themes, so stay inside yours. You do not modify any file.
 
 **What the change is for (if known):** {{intent}}
 
-## Your theme
+## Your themes
 
-{{theme_file_content}}
+{{theme_files_content}}
 
 ## How to work
 
@@ -56,7 +58,7 @@ Reply in this format, and nothing else:
 ## Findings
 
 ### <short title>
-- Theme: {{theme}}
+- Theme: <the theme it belongs to>
 - Severity: critical | high | medium | low
 - Confidence: high | medium
 - Location: <path:line or path:start-end>

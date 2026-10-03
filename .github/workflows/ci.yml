@@ -33,13 +33,13 @@ jobs:
         if: runner.os == 'Linux'
         run: shellcheck scripts/install.sh
 
-  # Every push to main that passes the checks becomes a release named after
-  # the day in Spain plus a counter: 2026.10.03.1, 2026.10.03.2...
-  # Pushes to dev are only tagged (2026.10.03.3-dev), with no GitHub Release;
-  # they share the same daily counter, so tags sort by time whatever their channel.
+  # Every push to main that passes the checks becomes a release 0.MINOR.PATCH.
+  # The bump is MINOR by default; put [patch] in a commit subject since the
+  # last release for a PATCH bump (scripts/next_release.py). dev has no tags
+  # and no releases.
   release:
     needs: check
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -54,27 +54,13 @@ jobs:
       - name: Tag the build and publish the release
         env:
           GH_TOKEN: ${{ github.token }}
-          DEV: ${{ github.ref == 'refs/heads/dev' }}
         run: |
           set -euo pipefail
           git fetch --tags --force
-          suffix=""
-          if [ "$DEV" = true ]; then suffix="-dev"; fi
-          if git tag --points-at HEAD | grep -qE "^[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]+${suffix}\$"; then
+          tag=$(python3 scripts/next_release.py --notes notes.md)
+          if [ -z "$tag" ]; then
             echo "HEAD already tagged; nothing to do"
             exit 0
           fi
-          day=$(TZ=Europe/Madrid date +%Y.%m.%d)
-          last=$(git tag -l "$day.*" | sed -e "s/^$day\.//" -e 's/-dev$//' | grep -E '^[0-9]+$' | sort -n | tail -1 || true)
-          tag="$day.$(( ${last:-0} + 1 ))$suffix"
-          if [ "$DEV" = true ]; then
-            # dev builds are tags only, so the Releases page lists just main
-            git tag "$tag" "$GITHUB_SHA"
-            git push origin "refs/tags/$tag"
-            echo "tagged $tag"
-            exit 0
-          fi
-          previous=$(git describe --tags --abbrev=0 --exclude '*-dev' HEAD 2>/dev/null || true)
-          git log --no-merges --pretty='- %s (%h)' "${previous:+$previous..}HEAD" > notes.md
           gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file notes.md
           echo "released $tag"

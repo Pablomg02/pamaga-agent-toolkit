@@ -4,17 +4,18 @@
     {
       "id": 1,
       "prompt": "I want to add CSV export to the reports page. Plan it.",
-      "expected_output": "The agent investigates the reports code, asks the questions that change the design (columns, size limits, sync vs background export) with a recommended option each, writes plans/backlog/<id>-csv-export/plan.md with verifiable tasks, runs two independent critics, records their disposition in plan-review.md, and reports without implementing.",
+      "expected_output": "The agent reads the reports code, asks the questions that change the design (columns, size limits, sync vs background export) with a recommended option each, writes plans/backlog/<id>-csv-export/plan.md with verifiable tasks and a single-agent Execution mode, does not launch critics for this medium plan, and reports without implementing.",
       "files": [],
       "expectations": [
-        "Reads the repository (directly or through an explorer subagent) before asking questions the code could answer",
+        "Reads the repository before asking questions the code could answer",
         "Asks clarifying questions with a recommended option before writing the plan",
         "Creates the folder with plans.py new, in backlog/",
         "Every task has objective, files, depends on and verifiable acceptance criteria",
         "Open questions is empty in the final plan",
-        "Launches two critics with different lenses that receive the plan file, not a summary",
-        "Writes plan-review.md with a disposition for each critic issue",
-        "Does not write any implementation code"
+        "Execution says single agent: the work does not split into substantial independent packages",
+        "Does not launch critic subagents nor offer one for a medium plan",
+        "Does not write any implementation code",
+        "Context gives the project's test, lint and build commands"
       ]
     },
     {
@@ -37,18 +38,60 @@
         "Does not create a full plan folder without the user's agreement",
         "Offers new-ticket or a direct fix"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "Plan the migration of our storage layer from SQLite to Postgres, including the data migration script, the new repository classes and the admin CLI.",
+      "expected_output": "A large, risky plan: the agent picks subagent execution only for packages with disjoint files and fixed interfaces, writes why the split pays off, and before handing off offers one independent critic, explaining its cost.",
+      "files": [],
+      "expectations": [
+        "Execution lists packages with disjoint files and the interfaces between them",
+        "States why the split into subagents is worth it",
+        "Offers one critic before handing off, and launches it only if the user accepts",
+        "If the critic runs, writes plan-review.md with a disposition for each issue"
+      ]
     }
   ],
   "trigger_evals": [
-    {"query": "help me plan the migration from REST to GraphQL", "should_trigger": true},
-    {"query": "how should we approach adding multi-tenancy? I want a proper plan before touching code", "should_trigger": true},
-    {"query": "break down the dark mode feature into tasks", "should_trigger": true},
-    {"query": "turn ticket 0021 into a real plan", "should_trigger": true},
-    {"query": "design the implementation for rate limiting on the public API", "should_trigger": true},
-    {"query": "implement plan 0015", "should_trigger": false},
-    {"query": "I want a roadmap for the next six months of the product", "should_trigger": false},
-    {"query": "add this bug to the backlog for later", "should_trigger": false},
-    {"query": "make me an HTML page explaining plan 0009", "should_trigger": false},
-    {"query": "what's the plan for dinner?", "should_trigger": false}
+    {
+      "query": "help me plan the migration from REST to GraphQL",
+      "should_trigger": true
+    },
+    {
+      "query": "how should we approach adding multi-tenancy? I want a proper plan before touching code",
+      "should_trigger": true
+    },
+    {
+      "query": "break down the dark mode feature into tasks",
+      "should_trigger": true
+    },
+    {
+      "query": "turn ticket 0021 into a real plan",
+      "should_trigger": true
+    },
+    {
+      "query": "design the implementation for rate limiting on the public API",
+      "should_trigger": true
+    },
+    {
+      "query": "implement plan 0015",
+      "should_trigger": false
+    },
+    {
+      "query": "I want a roadmap for the next six months of the product",
+      "should_trigger": false
+    },
+    {
+      "query": "add this bug to the backlog for later",
+      "should_trigger": false
+    },
+    {
+      "query": "make me an HTML page explaining plan 0009",
+      "should_trigger": false
+    },
+    {
+      "query": "what's the plan for dinner?",
+      "should_trigger": false
+    }
   ]
 }

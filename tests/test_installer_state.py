@@ -197,7 +197,7 @@ class StateFixture(unittest.TestCase):
         entry = {
             "mode": "copy",
             "hash": "sha256:old",
-            "version": "2026.10.01.1",
+            "version": "0.1.0",
             "commit": "abc1234",
             "installed_at": "2026-10-01T10:00:00+02:00",
         }
@@ -231,7 +231,7 @@ class ScanStatusTableTest(StateFixture):
         self.assertEqual(alpha.status, Status.LINKED)
         self.assertEqual(alpha.mode, "link")
         self.assertEqual(alpha.link_target, str(self.repo / "skills" / "alpha"))
-        self.assertEqual(alpha.installed_version, "2026.10.01.1")
+        self.assertEqual(alpha.installed_version, "0.1.0")
         self.assertEqual(alpha.changed_files, ())
 
     def test_linked_file_item(self) -> None:
@@ -275,7 +275,7 @@ class ScanStatusTableTest(StateFixture):
         self.record("skill/alpha", hash="sha256:old")
         alpha = scan(self.catalog, self.harness, self.manifest)["skill/alpha"]
         self.assertEqual(alpha.status, Status.UP_TO_DATE)
-        self.assertEqual(alpha.installed_version, "2026.10.01.1")
+        self.assertEqual(alpha.installed_version, "0.1.0")
 
     def test_up_to_date_file_item(self) -> None:
         copy_item(self.alpha_command, self.base / "commands" / "alpha.md")
@@ -292,7 +292,7 @@ class ScanStatusTableTest(StateFixture):
         alpha = scan(self.catalog, self.harness, self.manifest)["skill/alpha"]
         self.assertEqual(alpha.status, Status.OUTDATED)
         self.assertEqual(alpha.mode, "copy")
-        self.assertEqual(alpha.installed_version, "2026.10.01.1")
+        self.assertEqual(alpha.installed_version, "0.1.0")
         self.assertEqual(alpha.changed_files, ("~ SKILL.md",))
 
     def test_modified(self) -> None:
@@ -323,7 +323,7 @@ class ScanStatusTableTest(StateFixture):
         missing = result["skill/concurrent-work"]
         self.assertEqual(missing.status, Status.ORPHANED)
         self.assertEqual(missing.mode, "link")
-        self.assertEqual(missing.installed_version, "2026.10.01.1")
+        self.assertEqual(missing.installed_version, "0.1.0")
         self.assertEqual(missing.target, self.base / "skills" / "concurrent-work")
         self.assertIsNone(missing.link_target)
         self.assertEqual(missing.changed_files, ())
@@ -401,7 +401,7 @@ class ManifestTest(unittest.TestCase):
         entry = {
             "mode": "copy",
             "hash": "sha256:abc",
-            "version": "2026.10.03.2",
+            "version": "0.2.0",
             "commit": "18031b4",
             "installed_at": "2026-10-03T12:00:00+02:00",
         }
@@ -439,7 +439,7 @@ class ManifestTest(unittest.TestCase):
             {
                 "mode": "copy",
                 "hash": "sha256:abc",
-                "version": "2026.10.03.2",
+                "version": "0.2.0",
                 "commit": "18031b4",
                 "installed_at": "2026-10-03T12:00:00+02:00",
             },

@@ -83,13 +83,13 @@ class VersionsTest(unittest.TestCase):
         self.git = GitFixture(self.repo_dir)
 
     def build_tagged(self) -> str:
-        """v0.1.0, a change to the demo skill tagged 2026.10.01.1, then 2026.10.03.2."""
+        """v0.1.0, a change to the demo skill tagged 0.1.0, then 0.2.0."""
         self.git.commit("initial", "f.txt", "one")
         self.git.tag("v0.1.0")
         demo_commit = self.git.commit("change the demo skill", SKILL, "v1\n")
-        self.git.tag("2026.10.01.1")
+        self.git.tag("0.1.0")
         self.git.commit("other change", "f.txt", "two")
-        self.git.tag("2026.10.03.2")
+        self.git.tag("0.2.0")
         return demo_commit
 
     def with_upstream(self) -> None:
@@ -100,7 +100,7 @@ class VersionsTest(unittest.TestCase):
         self.git.run("remote", "add", "origin", str(origin))
         branch = self.git.run("symbolic-ref", "--short", "HEAD").strip()
         self.git.run("push", "--quiet", "--set-upstream", "origin", branch, "--tags")
-        self.git.run("reset", "--hard", "2026.10.01.1")
+        self.git.run("reset", "--hard", "0.1.0")
 
     def plain_dir(self) -> Path:
         path = self.root / "plain"
@@ -110,40 +110,40 @@ class VersionsTest(unittest.TestCase):
 
     def test_release_key_is_numeric(self) -> None:
         self.assertGreater(
-            versions.release_key("2026.10.03.10"),
-            versions.release_key("2026.10.03.9"),
+            versions.release_key("0.10.0"),
+            versions.release_key("0.9.0"),
         )
-        self.assertEqual(versions.release_key("2026.10.01.1"), (2026, 10, 1, 1))
-        tags = ["2026.10.03.2", "2026.10.01.1", "2026.10.03.10"]
+        self.assertEqual(versions.release_key("0.1.2"), (0, 1, 2))
+        tags = ["0.2.0", "0.10.0", "0.1.9"]
         self.assertEqual(
             sorted(tags, key=versions.release_key),
-            ["2026.10.01.1", "2026.10.03.2", "2026.10.03.10"],
+            ["0.1.9", "0.2.0", "0.10.0"],
         )
 
     def test_tagged_label_ignores_other_tags(self) -> None:
         self.build_tagged()
         version = versions.toolkit_version(self.repo_dir)
-        self.assertEqual(version.tag, "2026.10.03.2")
+        self.assertEqual(version.tag, "0.2.0")
         self.assertEqual(version.ahead, 0)
         self.assertFalse(version.dirty)
         self.assertEqual(version.commit, self.git.run("rev-parse", "--short", "HEAD").strip())
-        self.assertEqual(version.label, "2026.10.03.2")
+        self.assertEqual(version.label, "0.2.0")
         self.assertIn("v0.1.0", self.git.run("tag").splitlines())
 
     def test_ahead_label(self) -> None:
         self.build_tagged()
         self.git.commit("more work", "f.txt", "three")
         version = versions.toolkit_version(self.repo_dir)
-        self.assertEqual(version.tag, "2026.10.03.2")
+        self.assertEqual(version.tag, "0.2.0")
         self.assertEqual(version.ahead, 1)
-        self.assertEqual(version.label, "2026.10.03.2+1")
+        self.assertEqual(version.label, "0.2.0+1")
 
     def test_dirty_label(self) -> None:
         self.build_tagged()
         self.git.write("f.txt", "edited but not committed")
         version = versions.toolkit_version(self.repo_dir)
         self.assertTrue(version.dirty)
-        self.assertEqual(version.label, "2026.10.03.2 (modified)")
+        self.assertEqual(version.label, "0.2.0 (modified)")
 
     def test_no_tags_label(self) -> None:
         sha = self.git.commit("only commit", "f.txt", "x")
@@ -163,12 +163,12 @@ class VersionsTest(unittest.TestCase):
     def test_item_version_uses_the_oldest_release(self) -> None:
         demo_commit = self.build_tagged()
         version = versions.item_version(self.repo_dir, "skills/demo")
-        self.assertEqual(version.release, "2026.10.01.1")
+        self.assertEqual(version.release, "0.1.0")
         self.assertEqual(version.commit, demo_commit)
         self.assertEqual(version.subject, "change the demo skill")
         self.assertRegex(version.date, r"^\d{4}-\d{2}-\d{2}$")
         self.assertFalse(version.local_changes)
-        self.assertEqual(version.label, "2026.10.01.1")
+        self.assertEqual(version.label, "0.1.0")
 
     def test_item_version_unreleased_when_no_release_contains_it(self) -> None:
         self.build_tagged()
@@ -184,8 +184,8 @@ class VersionsTest(unittest.TestCase):
         self.git.write(SKILL, "edited but not committed\n")
         version = versions.item_version(self.repo_dir, "skills/demo")
         self.assertTrue(version.local_changes)
-        self.assertEqual(version.release, "2026.10.01.1")
-        self.assertEqual(version.label, "2026.10.01.1+local")
+        self.assertEqual(version.release, "0.1.0")
+        self.assertEqual(version.label, "0.1.0+local")
 
     def test_item_version_is_memoised_per_path(self) -> None:
         self.build_tagged()
@@ -215,70 +215,59 @@ class VersionsTest(unittest.TestCase):
         self.git.run("remote", "add", "origin", str(origin))
         self.git.run("push", "--quiet", "origin", "HEAD:refs/heads/main")
         self.git.run("push", "--quiet", "origin", "--tags")
-        self.assertEqual(versions.latest_remote_release(self.repo_dir, timeout=10), "2026.10.03.2")
+        self.assertEqual(versions.latest_remote_release(self.repo_dir, timeout=10), "0.2.0")
 
-    def test_dev_tags_share_the_daily_counter_and_sort_with_stable(self) -> None:
-        self.assertEqual(versions.release_key("2026.10.03.4-dev"), (2026, 10, 3, 4))
-        self.assertTrue(versions.is_dev_tag("2026.10.03.4-dev"))
-        self.assertFalse(versions.is_dev_tag("2026.10.03.4"))
-        self.assertGreater(versions.release_key("2026.10.03.4-dev"), versions.release_key("2026.10.03.3"))
-
-    def test_stable_clone_ignores_dev_tags(self) -> None:
+    def test_latest_remote_dev_commit(self) -> None:
         self.build_tagged()
-        self.git.commit("dev work", "f.txt", "three")
-        self.git.tag("2026.10.04.3-dev")
-        version = versions.toolkit_version(self.repo_dir)
-        self.assertFalse(version.dev)
-        self.assertEqual(version.tag, "2026.10.03.2")
-
-    def test_dev_branch_reports_dev_tag_and_label(self) -> None:
-        self.build_tagged()
-        self.git.run("switch", "--quiet", "-c", "dev")
-        self.git.commit("dev work", "f.txt", "three")
-        self.git.tag("2026.10.04.3-dev")
-        self.git.commit("more dev work", "f.txt", "four")
-        version = versions.toolkit_version(self.repo_dir)
-        self.assertTrue(version.dev)
-        self.assertEqual(version.tag, "2026.10.04.3-dev")
-        self.assertEqual(version.label, "2026.10.04.3-dev+1")
-
-    def test_dev_branch_without_dev_tag_is_marked_dev(self) -> None:
-        self.build_tagged()
-        self.git.run("switch", "--quiet", "-c", "dev")
-        self.assertEqual(versions.toolkit_version(self.repo_dir).label, "2026.10.03.2 (dev)")
-
-    def test_items_ignore_dev_tags(self) -> None:
-        demo_commit = self.build_tagged()
-        self.git.run("switch", "--quiet", "-c", "dev")
-        self.git.commit("touch demo", SKILL, "v2\n")
-        self.git.tag("2026.10.05.4-dev")
-        self.assertEqual(versions.item_version(self.repo_dir, "skills/demo").release, None)
-        versions.clear_cache()
-        self.assertEqual(versions.item_version(self.repo_dir, "skills/demo").commit != demo_commit, True)
-
-    def test_remote_discovery_separates_channels(self) -> None:
-        self.build_tagged()
-        self.git.tag("2026.10.04.3-dev")
         origin = self.root / "origin.git"
         subprocess.run([GIT, "init", "--bare", "--quiet", str(origin)], capture_output=True, check=True)
         self.git.run("remote", "add", "origin", str(origin))
         self.git.run("push", "--quiet", "origin", "HEAD:refs/heads/main")
-        self.git.run("push", "--quiet", "origin", "--tags")
-        self.assertEqual(versions.latest_remote_release(self.repo_dir, timeout=10), "2026.10.03.2")
-        self.assertEqual(versions.latest_remote_dev_release(self.repo_dir, timeout=10), "2026.10.04.3-dev")
+        self.assertIsNone(versions.latest_remote_dev_commit(self.repo_dir, timeout=10))
+        self.git.run("switch", "--quiet", "-c", "dev")
+        sha = self.git.commit("dev work", "f.txt", "three")
+        self.git.run("push", "--quiet", "origin", "dev")
+        # HEAD already has origin/dev, and local commits on top are not "behind"
+        self.assertIsNone(versions.latest_remote_dev_commit(self.repo_dir, timeout=10))
+        self.git.commit("local work", "f.txt", "four")
+        self.assertIsNone(versions.latest_remote_dev_commit(self.repo_dir, timeout=10))
+        self.git.run("reset", "--quiet", "--hard", "HEAD~2")
+        remote = versions.latest_remote_dev_commit(self.repo_dir, timeout=10)
+        self.assertTrue(remote and remote.startswith(sha))
+        self.assertIsNone(versions.latest_remote_dev_commit(self.plain_dir(), timeout=5))
+
+    def test_dev_branch_uses_the_commit_as_version(self) -> None:
+        self.build_tagged()
+        self.git.run("switch", "--quiet", "-c", "dev")
+        self.git.commit("dev work", "f.txt", "three")
+        version = versions.toolkit_version(self.repo_dir)
+        self.assertTrue(version.dev)
+        self.assertEqual(version.tag, "0.2.0")
+        self.assertEqual(version.label, "0.2.0+1 (dev)")
+
+    def test_dev_branch_without_release_shows_the_commit(self) -> None:
+        self.git.run("switch", "--quiet", "-c", "dev")
+        sha = self.git.commit("only dev commit", "f.txt", "x")
+        version = versions.toolkit_version(self.repo_dir)
+        self.assertTrue(version.dev)
+        self.assertIsNone(version.tag)
+        self.assertEqual(version.label, f"dev ({sha})")
 
     def test_channel_notice(self) -> None:
         tv = versions.ToolkitVersion
-        stable = tv(tag="2026.10.03.2", ahead=0, dirty=False, commit="abc")
-        self.assertEqual(versions.channel_notice(stable, "2026.10.03.2", "2026.10.09.5-dev"), [])
-        self.assertEqual(len(versions.channel_notice(stable, "2026.10.04.3")), 1)
-        dev = tv(tag="2026.10.04.3-dev", ahead=0, dirty=False, commit="abc", dev=True)
-        text = "\n".join(versions.channel_notice(dev, "2026.10.03.2", None))
+        remote_sha = "deadbeef" * 5
+        stable = tv(tag="0.2.0", ahead=0, dirty=False, commit="abc1234")
+        self.assertEqual(versions.channel_notice(stable, "0.2.0", remote_sha), [])
+        self.assertEqual(len(versions.channel_notice(stable, "0.3.0")), 1)
+        dev = tv(tag="0.2.0", ahead=0, dirty=False, commit="abc1234", dev=True)
+        text = "\n".join(versions.channel_notice(dev, "0.2.0", None))
         self.assertIn("development build", text)
-        self.assertIn("latest stable release is 2026.10.03.2", text)
-        text = "\n".join(versions.channel_notice(dev, "2026.10.05.4", "2026.10.06.5-dev"))
-        self.assertIn("newer stable release exists: 2026.10.05.4", text)
-        self.assertIn("newer development build is available: 2026.10.06.5-dev", text)
+        self.assertIn("latest stable release is 0.2.0", text)
+        text = "\n".join(versions.channel_notice(dev, "0.3.0", remote_sha))
+        self.assertIn("newer stable release exists: 0.3.0", text)
+        self.assertIn("origin/dev has newer commits (deadbee)", text)
+        text = "\n".join(versions.channel_notice(dev, "0.3.0", "abc1234" + "f" * 33))
+        self.assertNotIn("origin/dev", text)
 
     def test_pull_status_without_upstream(self) -> None:
         self.build_tagged()
@@ -292,7 +281,7 @@ class VersionsTest(unittest.TestCase):
         self.assertTrue(can_pull, reason)
         ok, output = versions.pull(self.repo_dir)
         self.assertTrue(ok, output)
-        self.assertEqual(versions.toolkit_version(self.repo_dir).tag, "2026.10.03.2")
+        self.assertEqual(versions.toolkit_version(self.repo_dir).tag, "0.2.0")
         can_pull, reason = versions.pull_status(self.repo_dir)
         self.assertFalse(can_pull)
         self.assertTrue(reason)

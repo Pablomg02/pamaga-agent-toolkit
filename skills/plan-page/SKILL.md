@@ -1,6 +1,6 @@
 ---
 name: plan-page
-description: Generate plan.html, a self-contained explainer page (one HTML file, fixed house style, no external resources) for a plan, roadmap or ticket folder - why, approach, decisions, execution order, tasks, acceptance criteria, risks and progress. Use only when the user explicitly asks for a page, web page, HTML or visual summary of a plan, or to regenerate an outdated one. Never as a side effect of planning or implementing.
+description: Generate plan.html, a self-contained explainer page (one HTML file, fixed house style, no external resources) for a plan, roadmap or ticket folder - why, approach, decisions, execution mode and order, tasks, acceptance criteria, risks and progress. Use only when the user explicitly asks for a page, web page, HTML or visual summary of a plan, or to regenerate an outdated one. Never as a side effect of planning or implementing.
 ---
 
 # Plan explainer page
@@ -49,10 +49,14 @@ them and ask whether they still want it rebuilt.
 - **Lede**: two or three sentences that a newcomer understands.
 - **Stats**: three or four numbers that matter for this plan (tasks, done,
   risks, open questions; milestones and derived plans for a roadmap).
-- **Execution order**: compute the waves from each task's *Depends on*:
-  wave 1 holds tasks with no dependencies, wave N those whose dependencies
-  are all in earlier waves. If there is only one wave, a sentence saying the
-  tasks are independent replaces the component.
+- **Execution order**: the intro sentence states the plan's *Execution*
+  mode: "One agent works through the tasks in order", or the subagent
+  packages, which tasks each one holds and why the work was split. Then
+  compute the waves from each task's *Depends on*: wave 1 holds tasks with
+  no dependencies, wave N those whose dependencies are all in earlier waves.
+  With subagents, name each task's package in its chip (`P1 · after T1`).
+  If there is only one wave, a sentence saying the tasks are independent
+  replaces the component.
 - **Status**: take task and criteria status from the *Implementation* ledger.
   Before implementation starts, every task is pending and the *Progress*
   section is omitted.

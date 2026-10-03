@@ -4,10 +4,10 @@
     {
       "id": 1,
       "prompt": "Can we replace our hand-written retry logic with tenacity? Research it, don't change anything.",
-      "expected_output": "The agent frames the question and sub-questions, asks single vs multi agent and chat vs saved (with a recommendation), reads the current retry code and tenacity's documentation, and answers with findings backed by path:line and sources, a confidence level and next steps. No project file changes.",
+      "expected_output": "One focused question: the agent frames it, works single agent without asking about mode or output, reads the current retry code and tenacity's documentation, and answers in chat with findings backed by path:line and sources, a confidence level and next steps. No project file changes.",
       "files": [],
       "expectations": [
-        "Asks whether to work single agent or multi agent, recommending one, unless the user already said",
+        "Works single agent without asking about the mode or about saving the report",
         "Reads the existing retry code before concluding",
         "Every finding cites a path:line or a numbered source",
         "Report starts with a direct Answer section",
@@ -42,13 +42,37 @@
     }
   ],
   "trigger_evals": [
-    {"query": "find out whether we can use DuckDB for the analytics queries, don't touch the code yet", "should_trigger": true},
-    {"query": "how does the caching layer work in this repo?", "should_trigger": true},
-    {"query": "compare the options for background jobs in Django for us", "should_trigger": true},
-    {"query": "do a spike on WebGPU support, multi agent", "should_trigger": true},
-    {"query": "plan the migration to DuckDB", "should_trigger": false},
-    {"query": "the export crashes with a KeyError, find out why", "should_trigger": false},
-    {"query": "review my changes for security issues", "should_trigger": false},
-    {"query": "add caching to the user endpoint", "should_trigger": false}
+    {
+      "query": "find out whether we can use DuckDB for the analytics queries, don't touch the code yet",
+      "should_trigger": true
+    },
+    {
+      "query": "how does the caching layer work in this repo?",
+      "should_trigger": true
+    },
+    {
+      "query": "compare the options for background jobs in Django for us",
+      "should_trigger": true
+    },
+    {
+      "query": "do a spike on WebGPU support, multi agent",
+      "should_trigger": true
+    },
+    {
+      "query": "plan the migration to DuckDB",
+      "should_trigger": false
+    },
+    {
+      "query": "the export crashes with a KeyError, find out why",
+      "should_trigger": false
+    },
+    {
+      "query": "review my changes for security issues",
+      "should_trigger": false
+    },
+    {
+      "query": "add caching to the user endpoint",
+      "should_trigger": false
+    }
   ]
 }

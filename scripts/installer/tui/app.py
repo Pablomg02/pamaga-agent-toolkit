@@ -104,6 +104,17 @@ def _colour(name: str) -> str:
     return RED if name == "red" else THEME.get(name, THEME["text"])
 
 
+# Skill descriptions end with when the model should load them ("Use when the
+# user says..."). People choosing what to install only need what it does.
+TRIGGER_STARTS = (" Use when ", " Use only when ", " Load it ")
+
+
+def what_it_does(description: str) -> str:
+    """The part of a skill description that says what it does."""
+    cut = min((i for i in (description.find(s) for s in TRIGGER_STARTS) if i > 0), default=len(description))
+    return description[:cut].strip()
+
+
 @dataclass
 class AppContext:
     """Everything the app needs from outside, injectable for tests.
@@ -126,7 +137,7 @@ class AppContext:
     pull_status: Callable[[], Tuple[bool, str]]
     pull: Callable[[], Tuple[bool, str]]
     reload: Callable[[], "AppContext"]
-    remote_dev_release: Callable[[], Optional[str]] = lambda: None
+    remote_dev_commit: Callable[[], Optional[str]] = lambda: None
 
 
 class App:
@@ -256,13 +267,16 @@ class App:
                             self._selection(force), self.ctx.item_version)
 
     def _update_target(self) -> Optional[str]:
-        """Newest remote tag worth moving to: stable, or a newer dev build on a dev clone."""
-        tag = self.ctx.toolkit_version.tag
-        candidates = [self.remote]
+        """What the U key would bring: a newer release, or newer commits on dev."""
         if self.ctx.toolkit_version.dev:
-            candidates.append(self.remote_dev)
-        newer = [c for c in candidates if c and (not tag or release_key(c) > release_key(tag))]
-        return max(newer, key=release_key) if newer else None
+            commit = self.ctx.toolkit_version.commit
+            if self.remote_dev and commit and not self.remote_dev.startswith(commit):
+                return f"origin/dev {self.remote_dev[:7]}"
+            return None
+        tag = self.ctx.toolkit_version.tag
+        if self.remote and (not tag or release_key(self.remote) > release_key(tag)):
+            return self.remote
+        return None
 
     def _update_available(self) -> bool:
         return self._update_target() is not None
@@ -654,7 +668,7 @@ class App:
             def check() -> None:
                 try:
                     if self.ctx.toolkit_version.dev:
-                        self.remote_dev = self.ctx.remote_dev_release()
+                        self.remote_dev = self.ctx.remote_dev_commit()
                     self._remote_box.append(self.ctx.remote_release())
                 except Exception:
                     self._remote_box.append(None)
@@ -1067,7 +1081,7 @@ class App:
         lines: List[str] = []
         if item.tagline:
             lines.append(style.fg(item.tagline, stage_colour(item.stage)))
-        lines.extend(wrap(item.description, width))
+        lines.extend(wrap(what_it_does(item.description), width))
         lines.append("")
         version = self.ctx.item_version(item)
 

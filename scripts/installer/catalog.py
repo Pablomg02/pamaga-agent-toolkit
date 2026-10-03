@@ -66,7 +66,7 @@ class Catalog:
     """Everything installable in one repository clone."""
 
     repo: Path
-    skills: tuple[Item, ...]    # sorted by (STAGE_ORDER index, NODES column, name)
+    skills: tuple[Item, ...]    # sorted by (STAGE_ORDER index, NODES order, name)
     agents: tuple[Item, ...]    # sorted by name
     commands: tuple[Item, ...]  # sorted by name
 
@@ -211,10 +211,11 @@ def load_catalog(repo: Path) -> Catalog:
             )
         )
 
+    flow = list(nodes)
+
     def skill_sort_key(item: Item) -> tuple[int, int, str]:
-        node = nodes.get(item.name)
-        column = node[0] if node else len(STAGE_ORDER)
-        return (STAGE_ORDER.index(item.stage), column, item.name)
+        position = flow.index(item.name) if item.name in nodes else len(flow)
+        return (STAGE_ORDER.index(item.stage), position, item.name)
 
     skills.sort(key=skill_sort_key)
 

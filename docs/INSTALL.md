@@ -134,10 +134,10 @@ in `/agents`.
   have, and it removes what is no longer in the toolkit (copies go to the
   backup folder first).
   After an install or update the CLI also says when a newer release exists.
-  A clone on the `dev` branch is a development build (`2026.10.03.3-dev`,
-  shown with a `[dev]` badge in the TUI): the installer tells you so, names
-  the latest stable release, and offers newer dev builds. To go back to
-  stable, run `git switch main && git pull`.
+  A clone on the `dev` branch is a development build (its version is the
+  commit, shown with a `[dev]` badge in the TUI): the installer tells you so,
+  names the latest stable release, and says when `origin/dev` has newer
+  commits. To go back to stable, run `git switch main && git pull`.
 - Copy installs: the installer remembers the content hash and version of each
   copy in `<base>/.pamaga-toolkit.json` (per harness), so run the installer
   again (or `--status`) and it says *up to date*, *update available* or

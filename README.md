@@ -2,33 +2,49 @@
   <img src="images/banner.webp" alt="PAMAGA Agent Toolkit — Macaco giving macacos instructions" width="100%">
 </p>
 
-# pamaga-agent-toolkit
+# 🐒 PAMAGA AGENT TOOLKIT
 
-A collection of agent skills, subagents and commands for opencode and
-Claude Code.
+My personal collection of **agent skills, subagents and commands** for opencode
+and Claude Code, which I use to build my software tools and experiments. It
+exists so that **I stay in control of the development**: I can understand what
+is going on, keep learning along the way, and remain **the owner of the
+project**.
 
-## Philosophy
+## Quick install
 
-Most of what lives here is not about *what* the agent should do, but *how* I
-want it done. These are the instructions and workflows I kept typing over and
-over — the same request, phrased the same way, because it consistently got me
-the result I wanted.
+You need a coding agent ([Claude Code](https://claude.com/claude-code) or
+[opencode](https://opencode.ai)), Python 3.9+ and the
+[GitHub CLI](https://cli.github.com) (`gh`).
 
-Writing them down means:
+**Linux or macOS**
 
-- I no longer re-explain the same thing every session.
-- The behavior stays consistent across projects and conversations.
-- When I find a better way to do something, I improve the skill here and the
-  change applies everywhere from then on.
+```bash
+gh repo clone Pablomg02/pamaga-agent-toolkit
+cd pamaga-agent-toolkit && ./scripts/install.sh
+```
 
-Above all, simplicity is the point. These skills are not meant to box the
-agent in with rigid restrictions — they only nudge it toward a few basic
-organizational patterns that make the work easier. When an instruction closes
-off too many options or adds ceremony without value, it does not belong here.
+**Windows** (PowerShell)
 
-They are intentionally model-agnostic: plain Markdown instructions with no
-harness-specific magic, so the same skill works with Claude, DeepSeek, GPT, or
-whatever model a given agent is running.
+```powershell
+gh repo clone Pablomg02/pamaga-agent-toolkit
+cd pamaga-agent-toolkit; python scripts\install.py
+```
+
+Want the **detailed step-by-step**, a **manual installation**, or have **no
+experience with this kind of thing** (no `gh`, no git)? Go to
+[INSTALL.md](INSTALL.md).
+
+## Your first minute
+
+1. Run the installer, accept the defaults, and **restart your agent**.
+2. Open your agent in any project and type `/make-plan`, or just say
+   *"plan a CSV export for this project"*.
+3. The agent asks you questions, drafts a `plan.md` under `plans/backlog/`,
+   and has it challenged by two independent critics before you approve it.
+
+Every skill works the same way: say what you want in plain words, or call it
+as a slash command. You do not need to learn them upfront; the table below
+shows what each one is for.
 
 ## What's inside
 
@@ -74,40 +90,48 @@ A plan's folder holds everything about it: `plan.md`, research, critique,
 page. The layout is defined by `plans-convention`, a supporting skill the
 others load on their own; it has no command.
 
-## Quick install
+## Philosophy
 
-```bash
-git clone https://github.com/Pablomg02/pamaga-agent-toolkit.git
-cd pamaga-agent-toolkit
+Most of what lives here is not about *what* the agent should do, but *how* I
+want it done. These are the instructions and workflows I kept typing over and
+over — the same request, phrased the same way, because it consistently got me
+the result I wanted.
 
-./scripts/install.sh            # full-screen installer: harnesses, skills, mode
-./scripts/install.sh opencode   # legacy flags still work: opencode, claude, all
-./scripts/install.sh --uninstall all
-```
+Writing them down means:
 
-To update later, from the clone:
+- I no longer re-explain the same thing every session.
+- The behavior stays consistent across projects and conversations.
+- When I find a better way to do something, I improve the skill here and the
+  change applies everywhere from then on.
+
+Above all, simplicity is the point. These skills are not meant to box the
+agent in with rigid restrictions — they only nudge it toward a few basic
+organizational patterns that make the work easier. When an instruction closes
+off too many options or adds ceremony without value, it does not belong here.
+
+They are intentionally model-agnostic: plain Markdown instructions with no
+harness-specific magic, so the same skill works with Claude, DeepSeek, GPT, or
+whatever model a given agent is running.
+
+## Update and uninstall
+
+From the clone:
 
 ```bash
 python3 scripts/install.py --update --pull   # git pull, then update what you installed
 python3 scripts/install.py --status          # what is installed where, and what changed
+./scripts/install.sh --uninstall all         # remove only what the toolkit installed
 ```
 
-The interactive installer detects what each harness already has, shows what
-changed since you installed it and offers one-key updates: press `U` to pull a
-newer release into the clone. It installs symlinks by default, so `git pull`
-updates everything in place, or real copies, which it tracks in a small
-manifest next to each harness so it can tell *up to date*, *outdated* and
-*edited locally* apart. Versions come from the git tags at runtime; no version
-numbers are stored in the files. It needs Python 3.9+ (standard library only),
-and on Windows run `python3 scripts/install.py` instead (bash is not
-required). Restart your agent after installing.
+The installer installs symlinks by default, so `git pull` updates everything
+in place, or real copies, which it tracks so it can tell *up to date*,
+*outdated* and *edited locally* apart. Versions come from the git tags; no
+version numbers are stored in the files. On Windows use `python` instead of
+`python3`. Restart your agent after any change.
 
-## Manual installation
-
-Installing by hand is trivial — it is just copying Markdown files (or symlinking
-them) into the right directories. See the
-[installation guide](docs/INSTALL.md) for the exact locations and commands for
-each agent.
+Prefer to do it by hand? It is just copying Markdown files: see the
+[manual installation guide](docs/INSTALL.md) for locations, commands and every
+installer flag.
 
 ## Development
 

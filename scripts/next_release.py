@@ -4,8 +4,9 @@
 The next tag bumps the newest ``MAJOR.MINOR.PATCH`` tag: ``MINOR`` by
 default, ``PATCH`` when a commit subject since that tag contains
 ``[patch]`` (any case). With no release yet, the first one is ``0.1.0``.
-Prints nothing when HEAD already carries a release tag, so a re-run of the
-job publishes nothing twice.
+Prints nothing when a release tag already contains HEAD, so a re-run of
+the job publishes nothing twice and an older commit whose CI finished after
+a newer one is not released.
 
     python3 scripts/next_release.py                    # print the next tag
     python3 scripts/next_release.py --notes notes.md   # and write release notes
@@ -61,8 +62,13 @@ def last_release(repo: Path) -> str | None:
 
 
 def next_release(repo: Path) -> str | None:
-    """Next tag for HEAD, or None when HEAD is already released."""
-    if release_tags(git(repo, "tag", "--points-at", "HEAD")):
+    """Next tag for HEAD, or None when a release already contains HEAD.
+
+    A release that contains HEAD is HEAD's own tag (a re-run of the job) or
+    a newer commit's tag (two pushes whose CI finished out of order): either
+    way, tagging HEAD would give older code a higher version.
+    """
+    if release_tags(git(repo, "tag", "--contains", "HEAD")):
         return None
     last = last_release(repo)
     since = f"{last}..HEAD" if last else "HEAD"

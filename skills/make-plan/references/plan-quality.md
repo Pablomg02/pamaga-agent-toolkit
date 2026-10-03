@@ -18,6 +18,8 @@ its author nearby to be understood is not finished.
 
 - Cites real paths, functions and commands found in the repository, not
   guesses. If something was not verified, say so.
+- Gives the project's test, lint and build commands, so the implementer
+  does not have to look for them.
 - Links research artifacts stored in the plan folder (`research/*.md`) instead
   of pasting them.
 
@@ -99,7 +101,8 @@ one):
 5. Dependencies form no cycle and the order makes sense.
 6. Every decision made in the conversation is in the *Decisions* table.
 7. *Open questions* is empty.
-8. No task leaves a design choice to the implementer: a smaller model could
+8. *Context* gives the test, lint and build commands.
+9. No task leaves a design choice to the implementer: a smaller model could
    follow it step by step and prove each criterion with a command.
-9. *Execution* names a mode; subagent packages share no files and are each
-   worth an agent.
+10. *Execution* names a mode; subagent packages share no files and are each
+    worth an agent.

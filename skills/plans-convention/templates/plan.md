@@ -24,8 +24,8 @@ evidence, and what happens if nothing is done. -->
 
 ### Context
 
-<!-- What the existing code or system looks like today, with file paths.
-Link research artifacts stored in this folder, e.g. research/auth-libs.md. -->
+<!-- What the existing code or system looks like today, with file paths,
+and the project's test, lint and build commands. Link research artifacts stored in this folder, e.g. research/auth-libs.md. -->
 
 ### Approach
 

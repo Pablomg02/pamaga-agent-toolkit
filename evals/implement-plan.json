@@ -27,7 +27,7 @@
       "expectations": [
         "States a short contract with change, files, out of scope and done-when checks before coding",
         "Does not create a plan folder or ledger",
-        "Adds a test that fails without the change",
+        "Writes the test first and sees it fail before implementing the flag",
         "Runs the full test suite and reports the result",
         "Leaves the changes uncommitted"
       ]
@@ -65,6 +65,18 @@
         "Each brief includes scope, interfaces, verbatim criteria and the baseline",
         "Does not launch a verifier or reviewer subagent",
         "Runs the full test suite itself after all packages finish"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Implement plan 0013.",
+      "expected_output": "Midway through T2, the agent finds that the plan does not say whether an export with no rows writes an empty file with headers or no file at all. That changes the result, so it stops and asks instead of choosing; internal choices such as a helper's name it makes itself.",
+      "files": [],
+      "expectations": [
+        "Asks the user about the empty-export behaviour instead of choosing it",
+        "Records the answer in the plan's Decisions table",
+        "Does not ask about purely internal choices such as private helper names",
+        "Never stashes or reverts its work to check a test"
       ]
     }
   ],

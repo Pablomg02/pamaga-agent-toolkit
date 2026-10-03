@@ -50,6 +50,17 @@
         "Reports 'no findings' plainly when validation rejects everything",
         "Lists what was not covered"
       ]
+    },
+    {
+      "id": 5,
+      "prompt": "Review the work on plan 0008 before I commit it.",
+      "expected_output": "The scope is the uncommitted changes from plan 0008. Besides the review at the chosen depth, the agent re-runs the plan's Verification commands and the criteria marked done, compares the ledger with the diff, and reports as a finding any criterion whose command fails or any ledger claim the diff does not back.",
+      "files": [],
+      "expectations": [
+        "Re-runs the plan's Verification commands itself",
+        "Compares the Implementation ledger with the diff",
+        "Reports a criterion marked done whose command fails as a high or critical finding"
+      ]
     }
   ],
   "trigger_evals": [

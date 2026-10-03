@@ -47,8 +47,9 @@ few tasks, say so and suggest `make-plan` instead of improvising a design.
 
 ## 2. Readiness check (plans)
 
-Read `plan.md` in full and every artifact it links. Before touching any code,
-list every point where you would have to guess:
+Read `plan.md` in full. Open the artifacts it links (research notes) only
+when a task needs them. Before touching any code, list every point where you
+would have to guess:
 
 - tasks without exact files or without verifiable acceptance criteria;
 - anything under *Open questions*, any `TBD` or placeholder;
@@ -77,12 +78,17 @@ back to `make-plan` instead of patching the plan here.
 Follow the plan's *Execution* section. Without one (a direct request, or an
 older plan), work as a single agent.
 
+How to write the code is yours to decide. Anything that would change the
+resulting behaviour or outcome (what the user gets, what other code sees)
+is not: if the plan or the request does not settle it, stop and ask.
+
 **Single agent.** Take the tasks in order. For each one:
 
 1. Read the code you are about to change and follow its conventions.
-2. Make the change, and add or update tests for the behaviour it changes,
-   in the project's test style.
-3. Run the relevant tests and linters. Fix what fails.
+2. Write or update the tests for the behaviour the task changes, in the
+   project's test style, and run them: they must fail, for the reason the
+   task addresses. A test that passes before the change proves nothing.
+3. Make the change. Run the relevant tests and linters, and fix what fails.
 4. Check every acceptance criterion and note the evidence: the command and
    its result, or the file and line.
 5. With a plan, update its ledger line before going to the next task.
@@ -111,8 +117,9 @@ Before calling the work done, check all of this on the real files:
 - Every acceptance criterion (and the plan's *Verification* section, or the
   contract's *Done when*) has evidence you produced: a command and its
   output, or a file and line. A criterion without evidence is not met.
-- New tests fail without the change: a test that would pass anyway proves
-  nothing.
+- Every new test was seen failing before its change (step 4). Do not undo
+  your changes to check it afterwards: the work is uncommitted, and
+  stashing or reverting it can lose it.
 - The diff (`git status` and `git diff`) contains only what was asked: no
   debug code, no `TODO` or stub left behind, no disabled or deleted tests,
   no hard-coded results, no files outside the scope.
@@ -180,7 +187,8 @@ packages yourself, one after another.
 
 - Writing code while the plan still has open questions, or while a direct
   request still needs a design decision.
-- Taking a design decision the plan or the user did not take.
+- Choosing something that changes the result (behaviour, output, what
+  other code sees) when the plan or the user did not decide it.
 - Marking a criterion met without a command or file you checked yourself.
 - Weakening a test or a criterion so it passes.
 - A clarification that is in the conversation but not in `plan.md`.

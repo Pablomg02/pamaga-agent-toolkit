@@ -48,9 +48,13 @@ instead.
 ## How to work
 
 - Read the code you are about to change and follow the conventions around it.
-- Add or update tests for the behaviour you change, in the project's existing
-  test style, unless the criteria say otherwise. A new test must fail
-  without your change.
+- Write or update the tests for the behaviour you change first, in the
+  project's existing test style, unless the criteria say otherwise. Run them
+  and see them fail for the right reason before you make the change. Never
+  stash or revert your work to check a test afterwards.
+- How to write the code is yours to decide. Anything that would change the
+  resulting behaviour or outcome and that this brief does not settle is
+  not: report it as `NEEDS_DECISION`.
 - Run the relevant tests and linters, and check every criterion yourself.
   A criterion is met only with evidence: a command and its output, or a file
   and line. Never report success on work you have not run.

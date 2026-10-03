@@ -110,6 +110,14 @@ marked, and let the user answer with numbers.
   parallel, with `references/reviewer-brief.md` and the full content of that
   theme's file. Each reviewer sees only its own theme.
 
+**Work from a plan**, at any depth: also check its claims yourself. Re-run
+the commands of the plan's *Verification* section and of the acceptance
+criteria marked done, and compare the *Implementation* ledger with the diff.
+A criterion marked done whose command fails, or a ledger entry the diff does
+not back, is a finding (high, or critical if it hides broken behaviour).
+This is cheap and catches an implementer that reported evidence it did not
+produce.
+
 Do not tell reviewers what to ignore beyond what the brief and themes
 already say; pre-judging findings hides real problems.
 

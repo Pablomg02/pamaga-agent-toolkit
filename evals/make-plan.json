@@ -14,7 +14,8 @@
         "Open questions is empty in the final plan",
         "Execution says single agent: the work does not split into substantial independent packages",
         "Does not launch critic subagents nor offer one for a medium plan",
-        "Does not write any implementation code"
+        "Does not write any implementation code",
+        "Context gives the project's test, lint and build commands"
       ]
     },
     {

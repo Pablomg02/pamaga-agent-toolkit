@@ -286,6 +286,43 @@ class VersionsTest(unittest.TestCase):
         self.assertFalse(can_pull)
         self.assertTrue(reason)
 
+    def test_pull_status_and_pull_when_only_a_release_tag_is_new(self) -> None:
+        """HEAD already has the tagged commit: pulling must still fetch the tag."""
+        self.build_tagged()
+        origin = self.root / "origin.git"
+        subprocess.run([GIT, "init", "--bare", "--quiet", str(origin)], capture_output=True, check=True)
+        self.git.run("remote", "add", "origin", str(origin))
+        branch = self.git.run("symbolic-ref", "--short", "HEAD").strip()
+        self.git.run("push", "--quiet", "--set-upstream", "origin", branch)
+        # CI tags the commit after it is pushed: origin has 0.2.0 at the tip,
+        # the clone is already at that tip and does not know the tag yet.
+        tip = self.git.run("rev-parse", "HEAD").strip()
+        subprocess.run([GIT, "-C", str(origin), "tag", "0.2.0", tip], capture_output=True, check=True)
+        self.git.run("tag", "--delete", "0.2.0")
+        self.assertEqual(versions.toolkit_version(self.repo_dir).tag, "0.1.0")
+        can_pull, reason = versions.pull_status(self.repo_dir)
+        self.assertTrue(can_pull, reason)
+        ok, output = versions.pull(self.repo_dir)
+        self.assertTrue(ok, output)
+        self.assertEqual(versions.toolkit_version(self.repo_dir).tag, "0.2.0")
+
+    def test_pull_status_ignores_a_new_release_outside_the_branch(self) -> None:
+        """A dev clone after a release: the tag is on main's merge, which pulling dev never brings."""
+        self.build_tagged()
+        origin = self.root / "origin.git"
+        subprocess.run([GIT, "init", "--bare", "--quiet", str(origin)], capture_output=True, check=True)
+        self.git.run("remote", "add", "origin", str(origin))
+        branch = self.git.run("symbolic-ref", "--short", "HEAD").strip()
+        self.git.run("push", "--quiet", "--set-upstream", "origin", branch)
+        self.git.run("switch", "--quiet", "-c", "release")
+        self.git.commit("merge on main", "f.txt", "three")
+        self.git.run("tag", "-a", "-m", "0.3.0", "0.3.0")
+        self.git.run("push", "--quiet", "origin", "release", "0.3.0")
+        self.git.run("switch", "--quiet", branch)
+        self.git.run("tag", "--delete", "0.3.0")
+        can_pull, reason = versions.pull_status(self.repo_dir)
+        self.assertFalse(can_pull, reason)
+
     def test_pull_status_refuses_a_dirty_tree(self) -> None:
         self.with_upstream()
         self.git.write("f.txt", "edited but not committed")

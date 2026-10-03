@@ -298,7 +298,12 @@ def _plan_unwanted(
 ) -> Action | None:
     status = installed.status
     unsupported = item.kind == "command" and not harness.supports_commands
-    reason = "commands are not supported by this harness" if unsupported else "no longer selected"
+    if unsupported:
+        reason = "commands are not supported by this harness"
+    elif item.kind == "skill" and _reads_shared_skills(harness, selection):
+        reason = f"already read from the {harness.skills_from} skills"
+    else:
+        reason = "no longer selected"
     if status == Status.UP_TO_DATE and not installed.managed:
         # An identical copy the user made by hand: not ours to delete.
         return _keep(harness, item, installed, reason)
@@ -325,6 +330,11 @@ def _plan_unwanted(
     return None
 
 
+def _reads_shared_skills(harness: Harness, selection: Selection) -> bool:
+    """True when this harness already sees the skills installed for another selected one."""
+    return harness.skills_from is not None and harness.skills_from in selection.harness_ids
+
+
 def _is_wanted(
     catalog: Catalog,
     harness: Harness,
@@ -333,7 +343,8 @@ def _is_wanted(
     wanted_skills: set[str],
 ) -> bool:
     if item.kind == "skill":
-        return item.name in wanted_skills
+        # opencode reads ~/.claude/skills too: installing there as well would list every skill twice.
+        return item.name in wanted_skills and not _reads_shared_skills(harness, selection)
     if item.kind == "agent":
         return item.name in selection.agents
     skill = catalog.get("skill", item.name)

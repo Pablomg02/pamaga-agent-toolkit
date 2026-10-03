@@ -27,6 +27,8 @@ SKILL_MAX_LINES = 500
 SKILL_KEYS = {"name", "description", "license", "compatibility", "metadata", "user-invocable"}
 BUNDLED_DIRS = ("references", "scripts", "assets", "templates")
 BUNDLED_REF_RE = re.compile(r"`((?:%s)/[^`\s]+)`" % "|".join(BUNDLED_DIRS))
+# Another skill's file, through its folder placeholder: `<plans-convention>/scripts/plans.py`.
+CROSS_REF_RE = re.compile(r"<([a-z0-9-]+)>/((?:%s)/[^`\s]+)" % "|".join(BUNDLED_DIRS))
 
 WRAPPER_TEMPLATE = """---
 description: {description}
@@ -149,6 +151,12 @@ def check_skill(skill_dir: Path, report: Report) -> tuple[str | None, bool]:
         referenced.add(ref)
         if not (skill_dir / ref).exists():
             report.error(skill_md, f"references {ref}, which does not exist")
+
+    for other, ref in CROSS_REF_RE.findall(body):
+        if "<" in ref or "{" in ref or "*" in ref:
+            continue
+        if not (skill_dir.parent / other / ref).exists():
+            report.error(skill_md, f"references <{other}>/{ref}, which does not exist")
 
     for folder in BUNDLED_DIRS:
         for path in sorted((skill_dir / folder).rglob("*")) if (skill_dir / folder).is_dir() else []:

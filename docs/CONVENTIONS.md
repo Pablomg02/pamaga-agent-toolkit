@@ -39,7 +39,8 @@ files work in opencode, Claude Code and Antigravity CLI.
 Say it in the first lines of the body: "Load the `plans-convention` skill
 first". When the skill uses files of the other one, refer to that folder as
 `<plans-convention>` (for example
-`python3 <plans-convention>/scripts/plans.py`) and say so once.
+`python3 <plans-convention>/scripts/plans.py`) and say so once. The
+validator checks that those files exist too.
 
 ## Subagents inside skills
 
@@ -101,8 +102,8 @@ Do not write wrappers by hand: `python3 scripts/validate.py --fix` creates
 or refreshes them from each skill's description, and the validator fails if
 one is missing or out of date.
 
-`commands/` is opencode-only: `scripts/install.sh` links it into opencode and
-not into Claude Code or Antigravity CLI, where wrappers would collide with the
+`commands/` is opencode-only: the installer puts it into opencode and not
+into Claude Code or Antigravity CLI, where wrappers would collide with the
 skill's own `/name`.
 
 ## Agents

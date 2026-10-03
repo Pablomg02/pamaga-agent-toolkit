@@ -34,7 +34,7 @@ PAGE_META_RE = re.compile(
 # Anything that makes the page load a resource from outside the file itself.
 EXTERNAL_RE = re.compile(
     r"""<script[^>]+\bsrc\s*=|<link[^>]+\bhref\s*=|<iframe\b|"""
-    r"""\b(?:src|srcset|poster|data)\s*=\s*["']?\s*(?!data:|#)[^"'\s>]+|"""
+    r"""<[^>]*\b(?:src|srcset|poster|data)\s*=\s*["']?\s*(?!data:|#)[^"'\s>]+|"""
     r"""@import\b|url\(\s*["']?\s*(?!data:|#)""",
     re.IGNORECASE,
 )

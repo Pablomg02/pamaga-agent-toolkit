@@ -6,6 +6,7 @@ import json
 import os
 import pty
 import re
+import select
 import subprocess
 import sys
 import tempfile
@@ -293,15 +294,33 @@ class ShimTest(CliTest):
             close_fds=True,
         )
         os.close(slave)
+        output = b""
+
+        def drain(seconds: float) -> None:
+            # Keep reading so the TUI never blocks on a full pty buffer.
+            nonlocal output
+            deadline = time.monotonic() + seconds
+            while time.monotonic() < deadline and process.poll() is None:
+                ready, _, _ = select.select([master], [], [], 0.1)
+                if ready:
+                    try:
+                        output += os.read(master, 65536)
+                    except OSError:  # Linux: EIO once the child is gone
+                        return
+
         try:
-            time.sleep(1.5)
+            # Send "q" only once the first frame (and its key hints) is drawn.
+            deadline = time.monotonic() + 15
+            while b"quit" not in output and time.monotonic() < deadline and process.poll() is None:
+                drain(0.2)
             os.write(master, b"q")
-            code = process.wait(timeout=15)
+            drain(15)
+            code = process.wait(timeout=5)
         finally:
             os.close(master)
             if process.poll() is None:
                 process.kill()
-        self.assertEqual(code, 0)
+        self.assertEqual(code, 0, output.decode("utf-8", "replace")[-2000:])
 
 
 if __name__ == "__main__":

@@ -174,6 +174,10 @@ class TuiTest(unittest.TestCase):
         for line in lines:
             self.assertLessEqual(display_width(line), 50)
 
+    def test_zero_size_terminal_renders_nothing(self) -> None:
+        self.assertEqual(self.app.render(80, 0), [])
+        self.assertEqual(self.app.render(0, 24), [])
+
     def test_splash_shows_version_wordmark_and_harness_summary(self) -> None:
         body = self.text()
         self.assertIn("2026.10.03.2", body)

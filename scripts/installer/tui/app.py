@@ -677,6 +677,8 @@ class App:
 
     def render(self, width: int, height: int) -> List[str]:
         style = self.style
+        if width <= 0 or height <= 0:
+            return []
         if width < MIN_WIDTH or height < MIN_HEIGHT:
             message = f"Terminal too small {self._dash()} resize to at least {MIN_WIDTH}x{MIN_HEIGHT}"
             lines = [""] * height

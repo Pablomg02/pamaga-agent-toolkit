@@ -61,6 +61,20 @@
         "Compares the Implementation ledger with the diff",
         "Reports a criterion marked done whose command fails as a high or critical finding"
       ]
+    },
+    {
+      "id": 6,
+      "prompt": "Review my changes in src/export/ and fix what you find.",
+      "expected_output": "The agent reviews, validates and reports first. Since the user asked to fix, it fixes the small confirmed findings without asking again; for a finding whose fix changes a public interface it asks whether to fix it now, write a fix plan with make-plan, or open a ticket. It writes a failing test before each behaviour fix, runs the full suite, leaves the changes uncommitted and reports what was fixed and what was not.",
+      "files": [],
+      "expectations": [
+        "Reports the findings before changing any code",
+        "Fixes the small confirmed findings without asking again",
+        "For the large fix, asks between fixing now, make-plan and a ticket",
+        "Writes a test that fails before each behaviour fix",
+        "Runs the full test suite after the fixes",
+        "Leaves the fixes uncommitted"
+      ]
     }
   ],
   "trigger_evals": [

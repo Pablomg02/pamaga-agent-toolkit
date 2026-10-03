@@ -70,7 +70,7 @@ stage.
 | [`plan‑page`](skills/plan-page/SKILL.md) | You want to read or share a plan at a glance. | A self-contained `plan.html` in the plan's folder. |
 | [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready, or a small change is clear enough to build directly. | The code and its tests, with every criterion proven by a command, left uncommitted for you; progress and results logged in the plan if there is one. |
 | [`find‑bug`](skills/find-bug/SKILL.md) | Something fails and the cause is not obvious. | The root cause, a fix, and a regression test. |
-| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings at the depth you choose (a quick pass, one generalist reviewer, or one reviewer per theme), on the themes that fit what changed, each checked before you see it. |
+| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings at the depth you choose (a quick pass, one generalist reviewer, or one reviewer per theme), on the themes that fit what changed, each checked before you see it, then the fixes you pick, with tests. |
 | [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
 | [`save‑learning`](skills/save-learning/SKILL.md) | You learned something worth remembering. | A short note in `docs/learnings/` that cites the plan it came from. |
 
@@ -104,6 +104,9 @@ models at once: I keep decisions with the best model I have (at the time of
 writing, Opus 5.5 with high effort) and leave implementation to a cheap but
 capable one (in this case, DeepSeek v4.1 flash), with as few subagents and
 calls as possible so as not to burn tokens.
+
+Why that is safe, and how the skills are shaped around it, is in
+[docs/PHILOSOPHY.md](docs/PHILOSOPHY.md).
 
 ## Update and uninstall
 

@@ -1,6 +1,6 @@
 ---
 name: deep-review
-description: Code review at the depth the change deserves - a quick review by the agent itself, one generalist reviewer subagent, or one reviewer per theme (bugs, security, performance, tests, simplification, conventions, design, documentation) with independent validators. Picks the themes from what actually changed, asks the user for the depth when the change is not trivial, and reports only findings that survived a check. Use when the user asks for a code review, audit or second opinion of changes, a branch, a PR, a folder or the whole repository, or asks to look for bugs, optimisations or outdated docs in existing code. Not for debugging a known failure (find-bug) or reviewing a plan.
+description: Code review at the depth the change deserves - a quick review by the agent itself, one generalist reviewer subagent, or one reviewer per theme (bugs, security, performance, tests, simplification, conventions, design, documentation) with independent validators. Picks the themes from what actually changed, asks the user for the depth when the change is not trivial, reports only findings that survived a check, then proposes to fix the small ones directly and asks whether to fix the large ones or plan them with make-plan, fixing with tests and leaving the changes uncommitted. Use when the user asks for a code review, audit or second opinion of changes, a branch, a PR, a folder or the whole repository, or asks to look for bugs, optimisations or outdated docs in existing code. Not for debugging a known failure (find-bug) or reviewing a plan.
 ---
 
 # Deep review
@@ -11,7 +11,9 @@ depth, every finding is checked against the code before the user sees it,
 so the report only contains problems that survived an attempt to disprove
 them.
 
-This skill reports; it does not change code. Offer fixes at the end.
+Review first, fix after. Nothing is changed until the report is out and the
+user has picked what to fix: a reviewer that edits while it reviews starts
+defending its own changes instead of looking for problems.
 
 ## Themes
 
@@ -163,12 +165,44 @@ Fix: <specific change>
 - If there are no findings, say so plainly, with the themes and scope that
   were covered. Do not invent minor findings to fill the report.
 
-Then offer:
+## 6. Fix
 
-- to fix some or all findings (the user picks which);
+If there are findings, sort them by the size of their fix and propose what
+to do in the same message as the report:
+
+- **Small fixes**: one place, a few lines, the fix is obvious from the
+  finding and changes nothing else. Propose to fix them all directly, as the
+  recommended option; the user can drop any.
+- **Large fixes**: several files, a design decision, a change of interface
+  or behaviour other code relies on, a migration. For each one, ask: fix it
+  now here, write a fix plan with `make-plan` (so a cheaper model can
+  implement it), or capture it as a ticket (`new-ticket`). Recommend the
+  plan when the fix needs decisions, fixing it here when it is only long.
+
+`PLAUSIBLE` findings are confirmed before fixing, never fixed on a guess. If
+the user already asked to fix everything ("review and fix it"), fix the
+small confirmed ones without asking, and still ask about the large ones.
+
+For each finding to fix:
+
+- Behaviour bugs: write a test that reproduces it first and see it fail,
+  then fix it and see it pass. A fix without a test that failed before is a
+  guess.
+- Keep each fix to what the finding describes; no refactors around it.
+- If a fix turns out larger than it looked, stop and ask, as for a large
+  fix.
+
+Then run the full test suite (and lint) and compare it with how it was
+before your fixes. Leave every change uncommitted. Report, one line per
+finding, what changed and the evidence, and what was left unfixed.
+
+Finally offer:
+
 - to save the report as a Markdown file; if the review relates to a plan
-  folder, save it there as `review-<YYYY-MM-DD>.md`;
-- to capture findings that will not be fixed now as tickets (`new-ticket`).
+  folder, save it there as `review-<YYYY-MM-DD>.md`, with what was fixed;
+- to capture findings that were not fixed as tickets (`new-ticket`), if
+  not decided above;
+- `ship-work` to commit the fixes.
 
 ## Subagents
 
@@ -187,4 +221,7 @@ separate pass that re-reads the code instead of trusting your earlier notes.
 - Launching subagents for a small change without the user asking.
 - A finding without a location or without a concrete impact.
 - Padding the report with style nits when the real result is "no problems".
-- Fixing code during the review without the user asking.
+- Changing code before the report is out, or fixing findings the user did
+  not pick.
+- A fix with no test that failed before it, or that weakens a test.
+- Committing the fixes.

@@ -5,8 +5,8 @@
 else in this module is pure text handling -- measuring, truncating, padding,
 wrapping -- so it is fully testable without a terminal.
 
-The stage colours mirror `THEMES["dark"]` in `scripts/draw_workflow.py`; a
-test compares both copies so the README diagram and the TUI never disagree.
+`THEME` is also the dark theme of the README diagram drawn by
+`scripts/draw_workflow.py`, so both always agree.
 
 Standard library only, Python 3.9+.
 """
@@ -25,7 +25,7 @@ DEPTH_256 = "256"
 DEPTH_TRUECOLOR = "truecolor"
 DEPTHS = (DEPTH_NONE, DEPTH_16, DEPTH_256, DEPTH_TRUECOLOR)
 
-# Keep in sync with scripts/draw_workflow.py:THEMES["dark"] (checked by tests).
+# Also the README diagram's dark theme (scripts/draw_workflow.py imports it).
 THEME = {
     "text": "#e6edf3",
     "muted": "#9198a1",

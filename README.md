@@ -125,5 +125,5 @@ The workflow diagram is generated: after adding or renaming a skill, update
 
 Every push to `main` that passes CI is released as `YYYY.MM.DD.N` (date in
 Spain, daily counter); see [Releases](https://github.com/Pablomg02/pamaga-agent-toolkit/releases).
-Pushes to `dev` are published as prereleases (`YYYY.MM.DD.N-dev`) for trying
-changes before they reach `main`.
+Pushes to `dev` are tagged as dev builds (`YYYY.MM.DD.N-dev`, no GitHub Release)
+for trying changes before they reach `main`.

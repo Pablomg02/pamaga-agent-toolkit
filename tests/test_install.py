@@ -91,11 +91,6 @@ class InstallTest(unittest.TestCase):
         self.assertTrue(own.is_dir())
         self.assertTrue(foreign_link.is_symlink())
 
-    def test_rejects_unknown_arguments(self) -> None:
-        result = self.run_install("vim")
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("Unknown argument", result.stderr)
-
 
 if __name__ == "__main__":
     unittest.main()

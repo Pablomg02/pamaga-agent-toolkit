@@ -1,7 +1,7 @@
 """Derive toolkit and item versions from git.
 
 Releases are the CI tags of the form ``YYYY.MM.DD.N`` (``main``); builds of
-``dev`` are prereleases tagged ``YYYY.MM.DD.N-dev``. Both share one daily
+``dev`` are tagged ``YYYY.MM.DD.N-dev`` (tag only, no GitHub Release). Both share one daily
 counter, so the numeric key orders them chronologically. Older tags such as
 ``v0.1.0`` are ignored. Nothing here raises on a git problem: every
 function degrades to ``None``/``unknown`` when git is missing, the folder
@@ -113,7 +113,7 @@ def latest_remote_release(repo: Path, timeout: float = 3.0) -> str | None:
 
 
 def latest_remote_dev_release(repo: Path, timeout: float = 3.0) -> str | None:
-    """Newest ``-dev`` prerelease tag on ``origin``, or None."""
+    """Newest ``-dev`` build tag on ``origin``, or None."""
     return _latest_remote(repo, DEV_TAG_RE, timeout)
 
 

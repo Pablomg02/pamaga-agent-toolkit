@@ -17,13 +17,19 @@ import argparse
 import sys
 from pathlib import Path
 
-IMAGES = Path(__file__).resolve().parent.parent / "images"
+SCRIPTS = Path(__file__).resolve().parent
+IMAGES = SCRIPTS.parent / "images"
+
+# The dark theme is the installer's palette, so the README diagram and the TUI
+# share one source of colours.
+if str(SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS))
+from installer.tui.style import THEME  # noqa: E402
 
 THEMES = {
     "light": dict(text="#1f2328", muted="#59636e", line="#8c959f", bg="#ffffff",
                   think="#2563eb", build="#059669", check="#c2410c", deliver="#7c3aed", keep="#db2777"),
-    "dark": dict(text="#e6edf3", muted="#9198a1", line="#6e7681", bg="#0d1117",
-                 think="#58a6ff", build="#3fb950", check="#f0883e", deliver="#a371f7", keep="#f778ba"),
+    "dark": dict(THEME),
 }
 
 SANS = "ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"

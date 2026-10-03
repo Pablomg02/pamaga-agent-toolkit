@@ -283,7 +283,9 @@ class Terminal:
             return
         try:
             self._saved = termios.tcgetattr(self._fd)
-            tty.setraw(self._fd)
+            # TCSADRAIN, not setraw's default TCSAFLUSH: a key typed while
+            # the installer was starting must not be thrown away.
+            tty.setraw(self._fd, termios.TCSADRAIN)
         except (termios.error, OSError, ValueError):
             self._saved = None
 
@@ -436,7 +438,12 @@ class Terminal:
                 return os.terminal_size((columns, lines))
         except OSError:
             pass
-        return shutil.get_terminal_size(fallback=DEFAULT_SIZE)
+        # Before 3.11 shutil returns 0x0 for a pty that was never sized
+        # instead of the fallback.
+        size = shutil.get_terminal_size(fallback=DEFAULT_SIZE)
+        if size.columns > 0 and size.lines > 0:
+            return size
+        return os.terminal_size(DEFAULT_SIZE)
 
     def draw(self, lines: Sequence[str]) -> None:
         """Paint one frame, `\\x1b[H` + each line + `\\x1b[K`, then `\\x1b[J`.

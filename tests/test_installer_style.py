@@ -505,10 +505,19 @@ class TerminalTest(unittest.TestCase):
         self.addCleanup(os.close, self.slave)
         self.stream = io.StringIO()
 
+    def attrs(self) -> list:
+        """The pty's termios attributes without PENDIN, which macOS sets on
+        its own when canonical mode comes back."""
+        import termios
+
+        attrs = termios.tcgetattr(self.slave)
+        attrs[3] &= ~getattr(termios, "PENDIN", 0)
+        return attrs
+
     def test_restores_on_exception(self) -> None:
         import termios
 
-        before = termios.tcgetattr(self.slave)
+        before = self.attrs()
         with self.assertRaises(RuntimeError):
             with tui_terminal.Terminal(fd=self.slave, stream=self.stream) as term:
                 self.assertIsInstance(term, tui_terminal.Terminal)
@@ -516,7 +525,7 @@ class TerminalTest(unittest.TestCase):
                 self.assertFalse(raw[3] & termios.ICANON, "canonical mode is off")
                 self.assertFalse(raw[3] & termios.ECHO, "echo is off")
                 raise RuntimeError("boom")
-        self.assertEqual(termios.tcgetattr(self.slave), before)
+        self.assertEqual(self.attrs(), before)
         written = self.stream.getvalue()
         self.assertIn("\x1b[?1049h", written)
         self.assertIn("\x1b[?25l", written)
@@ -524,12 +533,15 @@ class TerminalTest(unittest.TestCase):
         self.assertIn("\x1b[?25h", written)
 
     def test_restores_on_normal_exit(self) -> None:
-        import termios
-
-        before = termios.tcgetattr(self.slave)
+        before = self.attrs()
         with tui_terminal.Terminal(fd=self.slave, stream=self.stream):
             pass
-        self.assertEqual(termios.tcgetattr(self.slave), before)
+        self.assertEqual(self.attrs(), before)
+
+    def test_keeps_a_key_typed_before_raw_mode(self) -> None:
+        os.write(self.master, b"q")
+        with tui_terminal.Terminal(fd=self.slave, stream=self.stream) as term:
+            self.assertEqual(term.read_key(1.0), "q")
 
     def test_restore_is_idempotent(self) -> None:
         term = tui_terminal.Terminal(fd=self.slave, stream=self.stream)
@@ -617,6 +629,15 @@ class TerminalTest(unittest.TestCase):
         size = tui_terminal.Terminal(fd=read_fd, stream=self.stream).size()
         self.assertGreater(size.columns, 0)
         self.assertGreater(size.lines, 0)
+
+    def test_size_falls_back_for_an_unsized_pty(self) -> None:
+        # A fresh pty reports 0x0; before Python 3.11 shutil passed that on.
+        from unittest import mock
+
+        term = tui_terminal.Terminal(fd=self.slave, stream=self.stream)
+        with mock.patch.object(tui_terminal.shutil, "get_terminal_size", return_value=os.terminal_size((0, 0))):
+            size = term.size()
+        self.assertEqual((size.columns, size.lines), tui_terminal.DEFAULT_SIZE)
 
 
 if __name__ == "__main__":

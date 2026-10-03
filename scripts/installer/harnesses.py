@@ -32,7 +32,10 @@ class Harness:
     binary: str
     supports_commands: bool
     restart_hint: str
-    skills_from: str | None = None  # id of a harness whose skills dir this one also reads
+    # ids of harnesses whose skills dir this one also reads at this scope
+    skills_from: tuple[str, ...] = ()
+    # False when the harness expects another agent layout than agents/<name>.md
+    supports_agents: bool = True
 
     def dir_for(self, kind: str) -> Path:
         """Directory holding items of `kind`: "skill", "agent" or "command"."""
@@ -59,7 +62,10 @@ class HarnessSpec:
     user_root: str  # "xdg" (XDG_CONFIG_HOME, fallback ~/.config) or "home"
     user_dir: str
     project_dir: str
-    skills_from: str | None = None
+    skills_from: tuple[str, ...] = ()  # ids whose skills dir the harness reads (user scope)
+    # Like skills_from but for project scope; None means "same as skills_from".
+    project_skills_from: tuple[str, ...] | None = None
+    supports_agents: bool = True
 
 
 HARNESS_SPECS: tuple[HarnessSpec, ...] = (
@@ -72,7 +78,11 @@ HARNESS_SPECS: tuple[HarnessSpec, ...] = (
         user_root="xdg",
         user_dir="opencode",
         project_dir=".opencode",
-        skills_from="claude",
+        # opencode also reads Claude's skills dir at both scopes and the
+        # Antigravity .agents dir in a project: when both are selected the
+        # skills go there only, never duplicated in .opencode/skills.
+        skills_from=("claude",),
+        project_skills_from=("claude", "antigravity"),
     ),
     HarnessSpec(
         id="claude",
@@ -83,6 +93,20 @@ HARNESS_SPECS: tuple[HarnessSpec, ...] = (
         user_root="home",
         user_dir=".claude",
         project_dir=".claude",
+    ),
+    HarnessSpec(
+        id="antigravity",
+        label="Antigravity CLI",
+        binary="agy",
+        supports_commands=False,
+        restart_hint="Restart Antigravity CLI to pick up the changes.",
+        # Skills, subagents and hooks share this global root across the
+        # Antigravity surfaces; project scope uses the universal .agents dir.
+        user_root="home",
+        user_dir=".gemini/config",
+        project_dir=".agents",
+        # Its agents are agents/<name>/agent.md, not agents/<name>.md.
+        supports_agents=False,
     ),
 )
 
@@ -103,10 +127,20 @@ def all_harnesses(
         home = _home(env)
         xdg = env.get("XDG_CONFIG_HOME")
         roots = {"home": home, "xdg": Path(xdg) if xdg else home / ".config"}
-        return [_build(spec, roots[spec.user_root] / spec.user_dir) for spec in HARNESS_SPECS]
+        return [
+            _build(spec, roots[spec.user_root] / spec.user_dir, spec.skills_from)
+            for spec in HARNESS_SPECS
+        ]
     if scope == "project":
         root = Path(project) if project is not None else Path.cwd()
-        return [_build(spec, root / spec.project_dir) for spec in HARNESS_SPECS]
+        return [
+            _build(
+                spec,
+                root / spec.project_dir,
+                spec.skills_from if spec.project_skills_from is None else spec.project_skills_from,
+            )
+            for spec in HARNESS_SPECS
+        ]
     raise ValueError(f"unknown scope: {scope!r} (expected 'user' or 'project')")
 
 
@@ -115,7 +149,7 @@ def _home(env: Mapping[str, str]) -> Path:
     return Path(value) if value else Path.home()
 
 
-def _build(spec: HarnessSpec, base: Path) -> Harness:
+def _build(spec: HarnessSpec, base: Path, skills_from: tuple[str, ...]) -> Harness:
     return Harness(
         id=spec.id,
         label=spec.label,
@@ -123,5 +157,6 @@ def _build(spec: HarnessSpec, base: Path) -> Harness:
         binary=spec.binary,
         supports_commands=spec.supports_commands,
         restart_hint=spec.restart_hint,
-        skills_from=spec.skills_from,
+        skills_from=skills_from,
+        supports_agents=spec.supports_agents,
     )

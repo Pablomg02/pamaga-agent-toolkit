@@ -961,8 +961,8 @@ class App:
                     "version and offers updates.")
         elif kind == "option" and name == "commands":
             text = ("Space turns it on or off. Command wrappers let you type /<skill> in opencode. "
-                    "Claude Code registers "
-                    "skills as commands on its own, so it never gets them.")
+                    "Claude Code and Antigravity CLI register "
+                    "skills as commands on their own, so they never get them.")
         elif kind == "agent":
             agent = self.ctx.catalog.get("agent", name)
             text = agent.description if agent else ""

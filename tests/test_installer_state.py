@@ -95,9 +95,10 @@ class HarnessTest(unittest.TestCase):
     def test_user_scope_defaults_under_home(self) -> None:
         home = self.root / "home"
         harnesses = all_harnesses(env={"HOME": str(home)})
-        self.assertEqual([h.id for h in harnesses], ["opencode", "claude"])
+        self.assertEqual([h.id for h in harnesses], ["opencode", "claude", "antigravity"])
         self.assertEqual(harnesses[0].base, home / ".config" / "opencode")
         self.assertEqual(harnesses[1].base, home / ".claude")
+        self.assertEqual(harnesses[2].base, home / ".gemini" / "config")
 
     def test_xdg_config_home_wins_for_opencode(self) -> None:
         home = self.root / "home"
@@ -105,37 +106,55 @@ class HarnessTest(unittest.TestCase):
         harnesses = all_harnesses(env={"HOME": str(home), "XDG_CONFIG_HOME": str(xdg)})
         self.assertEqual(harnesses[0].base, xdg / "opencode")
         self.assertEqual(harnesses[1].base, home / ".claude")
+        self.assertEqual(harnesses[2].base, home / ".gemini" / "config")
 
     def test_userprofile_fallback_on_windows(self) -> None:
         profile = self.root / "profile"
         harnesses = all_harnesses(env={"USERPROFILE": str(profile)})
         self.assertEqual(harnesses[0].base, profile / ".config" / "opencode")
         self.assertEqual(harnesses[1].base, profile / ".claude")
+        self.assertEqual(harnesses[2].base, profile / ".gemini" / "config")
 
     def test_project_scope(self) -> None:
         project = self.root / "project"
         harnesses = all_harnesses(scope="project", project=project, env={})
         self.assertEqual(harnesses[0].base, project / ".opencode")
         self.assertEqual(harnesses[1].base, project / ".claude")
+        self.assertEqual(harnesses[2].base, project / ".agents")
 
     def test_project_scope_defaults_to_cwd(self) -> None:
         with mock.patch("installer.harnesses.Path.cwd", return_value=self.root):
             harnesses = all_harnesses(scope="project", env={})
         self.assertEqual(harnesses[0].base, self.root / ".opencode")
         self.assertEqual(harnesses[1].base, self.root / ".claude")
+        self.assertEqual(harnesses[2].base, self.root / ".agents")
 
     def test_unknown_scope_is_rejected(self) -> None:
         with self.assertRaises(ValueError):
             all_harnesses(scope="galaxy", env={})
 
     def test_labels_capabilities_and_restart_hints(self) -> None:
-        opencode, claude = all_harnesses(env={"HOME": str(self.root / "home")})
+        opencode, claude, antigravity = all_harnesses(env={"HOME": str(self.root / "home")})
         self.assertEqual((opencode.label, opencode.binary), ("opencode", "opencode"))
         self.assertTrue(opencode.supports_commands)
         self.assertEqual((claude.label, claude.binary), ("Claude Code", "claude"))
         self.assertFalse(claude.supports_commands)
-        self.assertTrue(opencode.restart_hint)
-        self.assertTrue(claude.restart_hint)
+        self.assertEqual((antigravity.label, antigravity.binary), ("Antigravity CLI", "agy"))
+        self.assertFalse(antigravity.supports_commands)
+        self.assertTrue(opencode.supports_agents and claude.supports_agents)
+        self.assertFalse(antigravity.supports_agents)
+        for harness in (opencode, claude, antigravity):
+            self.assertTrue(harness.restart_hint)
+
+    def test_shared_skills_differ_by_scope(self) -> None:
+        home = self.root / "home"
+        user = {h.id: h for h in all_harnesses(env={"HOME": str(home)})}
+        project = {h.id: h for h in all_harnesses(scope="project", project=self.root, env={})}
+        # opencode reads Claude's dir at both scopes, and .agents/ only in a project.
+        self.assertEqual(user["opencode"].skills_from, ("claude",))
+        self.assertEqual(project["opencode"].skills_from, ("claude", "antigravity"))
+        self.assertEqual(user["claude"].skills_from, ())
+        self.assertEqual(project["antigravity"].skills_from, ())
 
     def test_dir_for(self) -> None:
         harness = all_harnesses(env={"HOME": str(self.root / "home")})[0]

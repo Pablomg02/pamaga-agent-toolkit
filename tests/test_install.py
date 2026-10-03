@@ -20,6 +20,7 @@ class InstallTest(unittest.TestCase):
         self.home = Path(self._tmp.name)
         self.claude = self.home / ".claude"
         self.opencode = self.home / ".config" / "opencode"
+        self.antigravity = self.home / ".gemini" / "config"
         self.skills = sorted(p.name for p in (REPO / "skills").iterdir() if p.is_dir())
         self.commands = sorted(p.name for p in (REPO / "commands").glob("*.md"))
 
@@ -54,6 +55,15 @@ class InstallTest(unittest.TestCase):
         self.assertEqual(self.linked(self.opencode / "commands"), self.commands)
         self.assertFalse((self.claude / "skills").exists())
 
+    def test_antigravity_gets_skills_but_no_command_wrappers(self) -> None:
+        result = self.run_install("antigravity")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.linked(self.antigravity / "skills"), self.skills)
+        self.assertEqual(self.linked(self.antigravity / "commands"), [])
+        for name in self.skills:
+            target = (self.antigravity / "skills" / name).resolve()
+            self.assertEqual(target, (REPO / "skills" / name).resolve())
+
     def test_install_is_idempotent_and_uninstall_cleans_up(self) -> None:
         self.run_install("all")
         second = self.run_install("all")
@@ -63,7 +73,7 @@ class InstallTest(unittest.TestCase):
 
         removed = self.run_install("--uninstall", "all")
         self.assertEqual(removed.returncode, 0, removed.stderr)
-        for folder in (self.claude, self.opencode):
+        for folder in (self.claude, self.opencode, self.antigravity):
             for sub in ("skills", "agents", "commands"):
                 self.assertEqual(self.linked(folder / sub), [], f"{folder / sub}")
 

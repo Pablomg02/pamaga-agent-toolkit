@@ -80,15 +80,27 @@ others load on their own; it has no command.
 git clone https://github.com/Pablomg02/pamaga-agent-toolkit.git
 cd pamaga-agent-toolkit
 
-./scripts/install.sh opencode   # opencode (default)
-./scripts/install.sh claude     # Claude Code
-./scripts/install.sh all        # both
+./scripts/install.sh            # full-screen installer: harnesses, skills, mode
+./scripts/install.sh opencode   # legacy flags still work: opencode, claude, all
+./scripts/install.sh --uninstall all
 ```
 
-The script creates individual symlinks into each agent's config directory, so
-`git pull` updates everything in place. It requires bash (Linux, macOS or WSL).
-Some skills bundle small Python 3.9+ scripts (standard library only), so
-`python3` must be available. Restart your agent after installing.
+To update later, from the clone:
+
+```bash
+python3 scripts/install.py --update --pull   # git pull, then update what you installed
+python3 scripts/install.py --status          # what is installed where, and what changed
+```
+
+The interactive installer detects what each harness already has, shows what
+changed since you installed it and offers one-key updates: press `U` to pull a
+newer release into the clone. It installs symlinks by default, so `git pull`
+updates everything in place, or real copies, which it tracks in a small
+manifest next to each harness so it can tell *up to date*, *outdated* and
+*edited locally* apart. Versions come from the git tags at runtime; no version
+numbers are stored in the files. It needs Python 3.9+ (standard library only),
+and on Windows run `python3 scripts/install.py` instead (bash is not
+required). Restart your agent after installing.
 
 ## Manual installation
 

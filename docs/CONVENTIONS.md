@@ -69,6 +69,13 @@ pass.
 - Deterministic work (ids, moving folders, hashes, validation) belongs in a
   script, not in instructions: the model calls it instead of re-deriving it.
 - Every script has tests in `tests/`.
+- `scripts/installer/` is the toolkit's own installer: a package with a pure
+  engine (`catalog.py`, `versions.py`, `harnesses.py`, `state.py`,
+  `actions.py`), a non-interactive CLI (`cli.py`) and a terminal UI
+  (`tui/`). `scripts/install.py` is the entry point and `scripts/install.sh`
+  is a thin shim that keeps the legacy arguments. Its tests are
+  `tests/test_installer_*.py`; they use temporary directories and a fake
+  `HOME` and never touch the network.
 
 ## Invoking a skill
 

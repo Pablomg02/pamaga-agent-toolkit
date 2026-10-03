@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
+# Legacy-friendly entry point. It keeps the old arguments and delegates to
+# scripts/install.py: with no arguments in an interactive terminal it opens
+# the installer TUI, and any other use maps to the non-interactive CLI.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON="${PAMAGA_PYTHON:-python3}"
 OPENCODE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 CLAUDE_DIR="$HOME/.claude"
 
@@ -15,7 +19,7 @@ Targets:
   all          Both of the above
 
 Options:
-  --uninstall  Remove only the symlinks that point into this repo
+  --uninstall  Remove only the symlinks and copies installed by this toolkit
   -h, --help   Show this help
 
 Locations:
@@ -24,68 +28,10 @@ Locations:
 EOF
 }
 
-link_entries() {
-  local src_dir="$1" dest_dir="$2" pattern="${3:-*}"
-  [ -d "$src_dir" ] || return 0
-  mkdir -p "$dest_dir"
-  local item name target
-  for item in "$src_dir"/$pattern; do
-    [ -e "$item" ] || continue
-    name="$(basename "$item")"
-    [ "$name" = ".gitkeep" ] && continue
-    target="$dest_dir/$name"
-    if [ -L "$target" ] && [ "$(readlink "$target")" = "$item" ]; then
-      echo "  ok       $target"
-    elif [ -e "$target" ] && [ ! -L "$target" ]; then
-      echo "  SKIP     $target already exists and is not a symlink" >&2
-    else
-      ln -sfn "$item" "$target"
-      echo "  link     $target -> $item"
-    fi
-  done
-}
-
-unlink_entries() {
-  local src_dir="$1" dest_dir="$2" pattern="${3:-*}"
-  [ -d "$src_dir" ] || return 0
-  local item name target
-  for item in "$src_dir"/$pattern; do
-    [ -e "$item" ] || continue
-    name="$(basename "$item")"
-    target="$dest_dir/$name"
-    if [ -L "$target" ] && [ "$(readlink "$target")" = "$item" ]; then
-      rm -f "$target"
-      echo "  unlink   $target"
-    fi
-  done
-}
-
-link_skills()   { link_entries   "$REPO_DIR/skills"   "$1/skills"; }
-link_agents()   { link_entries   "$REPO_DIR/agents"   "$1/agents" "*.md"; }
-link_commands() { link_entries   "$REPO_DIR/commands" "$1/commands" "*.md"; }
-unlink_skills()   { unlink_entries "$REPO_DIR/skills"   "$1/skills"; }
-unlink_agents()   { unlink_entries "$REPO_DIR/agents"   "$1/agents" "*.md"; }
-unlink_commands() { unlink_entries "$REPO_DIR/commands" "$1/commands" "*.md"; }
-
-# commands/ only holds opencode wrappers that let the user type /<skill>.
-# Claude Code registers every skill as /<skill> already, so linking the
-# wrappers there would collide. Uninstall still cleans them everywhere, in
-# case an older version of this script linked them.
-apply_harness() {
-  local name="$1" dest="$2" with_commands="$3"
-  echo "${name} -> ${dest}"
-  if [ "$UNINSTALL" -eq 1 ]; then
-    unlink_skills "$dest"
-    unlink_agents "$dest"
-    unlink_commands "$dest"
-  else
-    link_skills "$dest"
-    link_agents "$dest"
-    if [ "$with_commands" -eq 1 ]; then
-      link_commands "$dest"
-    fi
-  fi
-}
+if ! command -v "$PYTHON" >/dev/null 2>&1; then
+  echo "error: python3 is required by the installer; install Python 3.9+ and retry" >&2
+  exit 1
+fi
 
 TARGET="opencode"
 UNINSTALL=0
@@ -98,22 +44,20 @@ for arg in "$@"; do
   esac
 done
 
+# No arguments in an interactive terminal: the friendly full-screen installer.
+if [ "$#" -eq 0 ] && [ -t 0 ] && [ -t 1 ]; then
+  exec "$PYTHON" "$REPO_DIR/scripts/install.py"
+fi
+
 case "$TARGET" in
-  opencode) apply_harness "OpenCode" "$OPENCODE_DIR" 1 ;;
-  claude) apply_harness "Claude Code" "$CLAUDE_DIR" 0 ;;
-  all)
-    apply_harness "OpenCode" "$OPENCODE_DIR" 1
-    apply_harness "Claude Code" "$CLAUDE_DIR" 0
-    if [ "$UNINSTALL" -eq 0 ]; then
-      echo
-      echo "Note: opencode reads skills from all installed locations. If you"
-      echo "install several harnesses, keep skill names distinct or install"
-      echo "only the harnesses you actually use."
-    fi
-    ;;
+  opencode) HARNESSES="opencode" ;;
+  claude) HARNESSES="claude" ;;
+  all) HARNESSES="opencode,claude" ;;
 esac
 
-if [ "$UNINSTALL" -eq 0 ]; then
-  echo
-  echo "Done. Restart your agent to pick up the changes."
+if [ "$UNINSTALL" -eq 1 ]; then
+  exec "$PYTHON" "$REPO_DIR/scripts/install.py" --uninstall --harness "$HARNESSES" --offline
 fi
+
+exec "$PYTHON" "$REPO_DIR/scripts/install.py" --yes --harness "$HARNESSES" \
+  --skills all --offline

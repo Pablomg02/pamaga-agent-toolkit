@@ -69,18 +69,45 @@ pulling.
 
 ## Option 3: the install script
 
-The script automates the symlink approach above:
+The script keeps the symlink approach above, now backed by an installer with a
+full-screen terminal UI:
 
 ```bash
-./scripts/install.sh opencode   # default
+./scripts/install.sh          # interactive: pick harnesses, skills, mode
+./scripts/install.sh opencode # non-interactive, the arguments from before
 ./scripts/install.sh claude
 ./scripts/install.sh all
 ./scripts/install.sh --uninstall all
 ```
 
-It only creates or removes symlinks that point into this repository, so it never
-touches other files in your config directories. Command wrappers are linked
-for opencode only.
+With no arguments in an interactive terminal, `./scripts/install.sh` opens the
+TUI: choose harnesses, components and mode (`link` or `copy`), review the
+actions and apply them. `Enter` advances, `Esc` goes back, `i` opens the
+details of a skill, `?` lists the keys.
+
+The same engine has a non-interactive CLI, useful in scripts and CI:
+
+```bash
+python3 scripts/install.py --yes --harness all --offline   # install everything
+python3 scripts/install.py --update                        # update what is installed
+python3 scripts/install.py --update --pull                 # git pull first, then update
+python3 scripts/install.py --status                        # what is installed where
+python3 scripts/install.py --status --json                 # machine-readable
+python3 scripts/install.py --uninstall --harness all
+python3 scripts/install.py --version                       # toolkit release label
+```
+
+`--yes` uses the detected harnesses (or opencode), `--mode link|copy`
+(without it, what is installed keeps its mode and new items are linked, or
+copied on Windows and when everything installed is a copy),
+`--skills all|a,b`, `--agents all|a,b`, `--no-commands`, `--scope user|project`
+and `--prune` (remove managed items you did not select). Nothing else is ever
+removed, and items the toolkit did not install are only replaced with
+`--force`, which always keeps a backup.
+
+It only creates or removes files and links that belong to this repository, so
+it never touches other files in your config directories. Command wrappers are
+linked for opencode only.
 
 ## Per-agent notes
 
@@ -96,7 +123,26 @@ in `/agents`.
 
 ## Updating and uninstalling
 
-- Symlink installs: just run `git pull`.
-- Copy installs: `git pull`, then re-run the copy commands.
-- Uninstall: run `./scripts/install.sh --uninstall <target>`, or delete the
-  symlinks or files you created.
+- Symlink installs: just run `git pull`. The TUI's `U` key pulls for you when
+  the clone has no local changes (or use `--offline` to disable the check).
+- Any install, in one command: `python3 scripts/install.py --update --pull`
+  fast-forwards the clone (only when it is clean and has not diverged;
+  otherwise it says why and updates from the clone as it is) and then
+  updates, in each harness, exactly what is already installed there, each
+  item in its current mode. It never adds skills or harnesses you did not
+  have, and it removes what is no longer in the toolkit (copies go to the
+  backup folder first).
+  After an install or update the CLI also says when a newer release exists.
+- Copy installs: the installer remembers the content hash and version of each
+  copy in `<base>/.pamaga-toolkit.json` (per harness), so run the installer
+  again (or `--status`) and it says *up to date*, *update available* or
+  *modified locally*. `--yes` updates what changed but never overwrites your
+  edits; add `--force` to overwrite a modified copy, which moves the old one
+  to `<base>/.pamaga-backups/<YYYYmmdd-HHMMSS>/` first.
+- Copies made by hand (option 2) that are identical to the clone are
+  adopted the next time you run the installer in copy mode, so they get
+  update tracking too; copies you changed are reported as *not installed by
+  the toolkit* and left alone unless you pass `--force`.
+- Uninstall: run `./scripts/install.sh --uninstall <target>` or
+  `python3 scripts/install.py --uninstall --harness <ids>`; it removes only
+  the symlinks and copies the manifest says are ours.

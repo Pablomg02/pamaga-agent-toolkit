@@ -10,6 +10,13 @@ and experiments. It exists so that **I stay in control of the development**: I
 can understand what is going on, keep learning along the way, and remain **the
 owner of the project**.
 
+> [!NOTE]
+> **Pre-release.** The toolkit is in `0.x` while I make sure every skill works
+> well. It looks very promising and I already use it daily; once I have tested
+> it enough, I will release **1.0**. Until then, everyone is welcome to use it
+> and to send suggestions as an [issue](../../issues) or a
+> [pull request](../../pulls).
+
 ## Quick install
 
 You need a coding agent ([Claude Code](https://claude.com/claude-code),

@@ -6,6 +6,7 @@ import sys
 import tempfile
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -258,6 +259,31 @@ class TuiTest(unittest.TestCase):
         self.assertIn("update", line("make-plan"))
         self.assertIn("remove", line("find-bug"))
         self.assertIn("install", line("deep-review"))
+
+    def test_skills_read_from_claude_show_as_installed_in_opencode(self) -> None:
+        # opencode reads ~/.claude/skills: a skill there is installed for it too.
+        self.world.opencode = replace(self.world.opencode, skills_from=("claude",))
+        self.world.harnesses = [self.world.opencode, self.world.claude]
+        target = self.world.claude.base / "skills" / "find-bug"
+        target.mkdir(parents=True)
+        self.world.record("claude", "skill", "find-bug", Status.LINKED, mode="link", version="0.2.0",
+                          managed=True)
+        self.world.records[("claude", "skill/find-bug")] = replace(
+            self.world.records[("claude", "skill/find-bug")], target=target)
+        self.app = self.fresh()
+        self.assertIn("1 via Claude Code", self.app._counts("opencode"))
+        self.app.checked = {"opencode"}
+        self.at_components()
+        lines = self.app.render(120, 40)
+        line = lambda name: next(l for l in lines if f" {name} " in l)
+        self.assertNotIn("install in", line("find-bug"))
+        self.assertIn("installed", line("find-bug"))
+        self.assertIn("via Claude Code (0.2.0)", "\n".join(self.app._details_lines(
+            self.world.catalog.get("skill", "find-bug"), 80)))
+        self.app.handle("enter")
+        review = self.text(160, 40)
+        self.assertIn("opencode reads", review)
+        self.assertFalse(any(a.kind == "skill" and a.name == "find-bug" for a in self.app.actions))
 
     def test_unmarked_hand_made_copy_is_not_shown_as_removed(self) -> None:
         # The plan keeps an identical copy the installer did not make.

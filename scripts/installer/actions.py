@@ -34,6 +34,7 @@ from installer.versions import ItemVersion
 MODES = ("link", "copy")
 _TMP_SUFFIX = ".pamaga-tmp"
 _OLD_SUFFIX = ".pamaga-old"
+_MANAGED = (Status.LINKED, Status.UP_TO_DATE, Status.OUTDATED, Status.MODIFIED)
 
 
 @dataclass(frozen=True)
@@ -106,11 +107,86 @@ def plan_actions(
     for harness in harnesses:
         if harness.id not in selection.harness_ids:
             continue
-        scanned = scans.get(harness.id, {})
         actions.extend(
-            _plan_harness(catalog, harness, scanned, selection, wanted_skills, versions)
+            _plan_harness(catalog, harness, scans, selection, wanted_skills, versions)
         )
     return actions
+
+
+def shared_source(
+    harness: Harness,
+    name: str,
+    scans: Mapping[str, Mapping[str, Installed]],
+    selected: frozenset[str] | set[str] = frozenset(),
+) -> str | None:
+    """Id of the harness whose skills dir already gives ``harness`` the skill ``name``.
+
+    opencode also reads the Claude Code skills dir (and, in a project, the
+    Antigravity one; see ``skills_from`` in harnesses.py). A provider counts
+    when it is in ``selected`` (the plan installs the skill there) or when
+    the skill is on disk in it now, installed by the toolkit or not. Pass
+    no ``selected`` to ask only about the disk. None when no provider has it.
+    """
+    for provider in harness.skills_from:
+        if provider in selected or _on_disk(scans, provider, name):
+            return provider
+    return None
+
+
+def _on_disk(scans: Mapping[str, Mapping[str, Installed]], harness_id: str, name: str) -> bool:
+    """True when the skill ``name`` is in the skills dir of ``harness_id`` now."""
+    installed = scans.get(harness_id, {}).get(f"skill/{name}")
+    return (
+        installed is not None
+        and installed.status not in (Status.NOT_INSTALLED, Status.ORPHANED)
+        and os.path.exists(installed.target)
+    )
+
+
+def shared_skill_losses(
+    harnesses: Iterable[Harness],
+    scans: Mapping[str, Mapping[str, Installed]],
+    actions: Iterable[Action],
+) -> list[tuple[str, str, str]]:
+    """Skills a harness outside the plan stops seeing because they leave a provider.
+
+    Returns ``(harness_id, skill, provider_id)`` for each skill removed from
+    a dir that another harness also reads (opencode reading ~/.claude/skills)
+    when that harness is not planned, uses the toolkit (has something of
+    it installed), has no copy of its own and no other provider keeps it.
+    """
+    action_list = list(actions)
+    planned = {action.harness_id for action in action_list}
+    removed = {
+        (action.harness_id, action.name)
+        for action in action_list
+        if action.kind == "skill" and action.op == "remove"
+    }
+    added = {
+        (action.harness_id, action.name)
+        for action in action_list
+        if action.kind == "skill" and action.op in ("install", "update", "switch")
+    }
+    losses: list[tuple[str, str, str]] = []
+    for harness in harnesses:
+        if harness.id in planned or not harness.skills_from:
+            continue
+        scanned = scans.get(harness.id, {})
+        if not any(record.status in _MANAGED for record in scanned.values()):
+            continue
+        for provider, name in sorted(removed):
+            if provider not in harness.skills_from:
+                continue
+            if _on_disk(scans, harness.id, name):
+                continue
+            others = [p for p in harness.skills_from if p != provider]
+            if any(
+                (p, name) in added or ((p, name) not in removed and _on_disk(scans, p, name))
+                for p in others
+            ):
+                continue
+            losses.append((harness.id, name, provider))
+    return losses
 
 
 def apply_actions(
@@ -162,11 +238,12 @@ def apply_actions(
 def _plan_harness(
     catalog: Catalog,
     harness: Harness,
-    scanned: Mapping[str, Installed],
+    scans: Mapping[str, Mapping[str, Installed]],
     selection: Selection,
     wanted_skills: set[str],
     versions: Callable[[Item], ItemVersion],
 ) -> list[Action]:
+    scanned = scans.get(harness.id, {})
     actions: list[Action] = []
     for kind, items in (
         ("skill", catalog.skills),
@@ -177,8 +254,14 @@ def _plan_harness(
             installed = scanned.get(item.key)
             if installed is None:
                 installed = _not_installed(harness, kind, item.name)
-            wanted = _is_wanted(catalog, harness, item, selection, wanted_skills)
-            action = _plan_item(harness, item, installed, wanted, selection, versions)
+            shared = None
+            if kind == "skill" and item.name in wanted_skills:
+                # opencode also reads the Claude Code dirs and, in project
+                # scope, the Antigravity .agents dir: a copy here as well
+                # would list the skill twice. See skills_from in harnesses.py.
+                shared = shared_source(harness, item.name, scans, selection.harness_ids)
+            wanted = shared is None and _is_wanted(catalog, harness, item, selection, wanted_skills)
+            action = _plan_item(harness, item, installed, wanted, selection, versions, shared)
             if action is not None:
                 actions.append(action)
     known = {
@@ -208,9 +291,10 @@ def _plan_item(
     wanted: bool,
     selection: Selection,
     versions: Callable[[Item], ItemVersion],
+    shared: str | None = None,
 ) -> Action | None:
     if not wanted:
-        return _plan_unwanted(harness, item, installed, selection)
+        return _plan_unwanted(harness, item, installed, selection, shared)
     status = installed.status
     if status == Status.ORPHANED:
         # Ours, but the source it pointed at is gone: prune cleans it up.
@@ -295,15 +379,15 @@ def _plan_unwanted(
     item: Item,
     installed: Installed,
     selection: Selection,
+    shared: str | None = None,
 ) -> Action | None:
     status = installed.status
     if item.kind == "command" and not harness.supports_commands:
         reason = "commands are not supported by this harness"
     elif item.kind == "agent" and not harness.supports_agents:
         reason = "agents use another layout in this harness"
-    elif item.kind == "skill" and _reads_shared_skills(harness, selection):
-        providers = [p for p in harness.skills_from if p in selection.harness_ids]
-        reason = f"already read from the {', '.join(providers)} skills"
+    elif shared is not None:
+        reason = f"already read from the {shared} skills"
     else:
         reason = "no longer selected"
     if status == Status.UP_TO_DATE and not installed.managed:
@@ -332,11 +416,6 @@ def _plan_unwanted(
     return None
 
 
-def _reads_shared_skills(harness: Harness, selection: Selection) -> bool:
-    """True when this harness already sees the skills installed for another selected one."""
-    return any(provider in selection.harness_ids for provider in harness.skills_from)
-
-
 def _is_wanted(
     catalog: Catalog,
     harness: Harness,
@@ -345,10 +424,7 @@ def _is_wanted(
     wanted_skills: set[str],
 ) -> bool:
     if item.kind == "skill":
-        # opencode also reads the Claude Code dirs and, in project scope, the
-        # Antigravity .agents dir: installing here as well would list every
-        # skill twice. See skills_from in harnesses.py.
-        return item.name in wanted_skills and not _reads_shared_skills(harness, selection)
+        return item.name in wanted_skills
     if item.kind == "agent":
         return item.name in selection.agents and harness.supports_agents
     skill = catalog.get("skill", item.name)

@@ -92,6 +92,23 @@ class InstallCliTest(CliTest):
         self.assertFalse((self.antigravity / "commands").exists())
         self.assertFalse(self.opencode.exists())
 
+    def test_opencode_alone_uses_the_skills_already_in_claude(self) -> None:
+        # The user's case: Claude Code got the skills, then opencode is installed on its own.
+        first = self.run_cli("--yes", "--harness", "claude", "--skills", "make-plan", "--offline")
+        self.assertEqual(first.returncode, 0, first.stderr)
+        second = self.run_cli("--yes", "--harness", "opencode", "--skills", "make-plan", "--offline")
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual(self.linked(self.opencode / "skills"), [])
+        self.assertEqual(self.linked(self.opencode / "commands"), ["make-plan.md", "research-topic.md"])
+        self.assertIn("reads 3 skill(s) from", second.stdout)
+        self.assertEqual(self.status()["harnesses"]["opencode"]["skill/make-plan"]["via"], "claude")
+        table = self.run_cli("--status", "--harness", "opencode", "--offline")
+        self.assertIn("= via Claude Code", table.stdout)
+        # Taking the skills out of Claude Code leaves opencode without them: say so.
+        removed = self.run_cli("--uninstall", "--harness", "claude", "--offline")
+        self.assertEqual(removed.returncode, 0, removed.stderr)
+        self.assertIn("Warning: opencode read skill make-plan from Claude Code", removed.stdout)
+
     def test_copy_status_modified_skip_and_force(self) -> None:
         args = ("--yes", "--harness", "opencode", "--skills", "make-plan", "--mode", "copy", "--offline")
         self.assertEqual(self.run_cli(*args).returncode, 0)

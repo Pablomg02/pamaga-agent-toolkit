@@ -115,24 +115,28 @@ def key_hints(
 ) -> List[str]:
     """Full-width footer lines with `key label` hints, wrapped at `width`.
 
-    Hints are joined with two spaces and coloured `muted`; a hint that does
-    not fit on its own is truncated with an ellipsis.
+    Keys are bold in the `think` colour and labels in the text colour, so the
+    keys stand out from the words; hints are three spaces apart. A hint that
+    does not fit on its own is truncated with an ellipsis.
     """
     style = _style_or_plain(style)
     if width <= 0:
         return []
-    chunks = [f"{key} {label}" for key, label in pairs]
-    if not chunks:
+    pairs = list(pairs)
+    if not pairs:
         return [" " * width]
     lines = []
     current = ""
-    for chunk in chunks:
+    for key, label in pairs:
+        chunk = style.fg(label, THEME["text"])
+        if key:
+            chunk = style.bold(style.fg(key, THEME["think"])) + " " + chunk
         if not current:
             current = chunk
-        elif display_width(current) + 2 + display_width(chunk) <= width:
-            current += "  " + chunk
+        elif display_width(current) + 3 + display_width(chunk) <= width:
+            current += "   " + chunk
         else:
             lines.append(current)
             current = chunk
     lines.append(current)
-    return [style.fg(style.fit(line, width), THEME["muted"]) for line in lines]
+    return [style.fit(line, width) for line in lines]

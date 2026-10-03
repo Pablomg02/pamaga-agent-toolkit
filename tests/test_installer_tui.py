@@ -47,7 +47,8 @@ class World:
         self.applied = []
         self.fail_action_names: set = set()
 
-    def record(self, harness_id, kind, name, status, mode=None, version=None, changed=()) -> None:
+    def record(self, harness_id, kind, name, status, mode=None, version=None, changed=(),
+               managed=False) -> None:
         self.records[(harness_id, f"{kind}/{name}")] = Installed(
             harness_id=harness_id,
             kind=kind,
@@ -58,6 +59,7 @@ class World:
             installed_version=version,
             link_target=None,
             changed_files=tuple(changed),
+            managed=managed,
         )
 
     def scan(self, harness: Harness) -> dict:
@@ -212,6 +214,72 @@ class TuiTest(unittest.TestCase):
         self.assertEqual(self.app.screen, "review")
         self.app.handle("esc")
         self.assertEqual(self.app.screen, "components")
+
+    def test_arrows_move_between_steps_but_never_apply(self) -> None:
+        self.app.handle("right")
+        self.assertEqual(self.app.screen, "harnesses")
+        self.app.handle("right")
+        self.assertEqual(self.app.screen, "components")
+        self.app.handle("right")
+        self.assertEqual(self.app.screen, "review")
+        self.app.handle("right")
+        self.assertEqual(self.app.screen, "review")
+        self.assertEqual(self.world.applied, [])
+        for screen in ("components", "harnesses", "splash"):
+            self.app.handle("left")
+            self.assertEqual(self.app.screen, screen)
+
+    def test_footer_says_what_to_do_and_which_keys(self) -> None:
+        self.at_components()
+        body = self.text(120, 30)
+        self.assertIn("Space marks", body)
+        self.assertIn("space mark", body)
+        self.assertIn("right review", body)
+        self.assertNotIn("u mark updates", body)
+
+    def test_a_toggles_all_and_none(self) -> None:
+        self.at_components()
+        self.app.handle("n")
+        self.app.handle("a")
+        self.assertEqual(self.app.chosen, {s.name for s in self.world.catalog.skills})
+        self.app.handle("a")
+        self.assertEqual(self.app.chosen, set())
+
+    def test_skill_rows_say_what_apply_will_do(self) -> None:
+        self.world.record("opencode", "skill", "make-plan", Status.OUTDATED, mode="copy", version="2026.10.01.1")
+        self.world.record("opencode", "skill", "find-bug", Status.LINKED, mode="link")
+        self.world.record("claude", "skill", "find-bug", Status.LINKED, mode="link")
+        self.app = self.fresh()
+        self.at_components()
+        self.app.chosen.discard("find-bug")
+        self.app.chosen.add("deep-review")
+        lines = self.app.render(120, 40)
+        line = lambda name: next(l for l in lines if f" {name} " in l)
+        self.assertIn("update", line("make-plan"))
+        self.assertIn("remove", line("find-bug"))
+        self.assertIn("install", line("deep-review"))
+
+    def test_unmarked_hand_made_copy_is_not_shown_as_removed(self) -> None:
+        # The plan keeps an identical copy the installer did not make.
+        self.world.record("opencode", "skill", "find-bug", Status.UP_TO_DATE, mode="copy")
+        self.world.record("opencode", "skill", "make-plan", Status.UP_TO_DATE, mode="copy", managed=True)
+        self.app = self.fresh()
+        self.at_components()
+        self.app.chosen.discard("find-bug")
+        self.app.chosen.discard("make-plan")
+        lines = self.app.render(120, 40)
+        line = lambda name: next(l for l in lines if f" {name} " in l)
+        self.assertNotIn("remove", line("find-bug"))
+        self.assertIn("remove", line("make-plan"))
+
+    def test_cursor_stays_visible_below_the_settings_header(self) -> None:
+        self.at_components()
+        self.app.handle("end")
+        self.assertEqual(self.app.cursor, len(self.app._component_rows()) - 1)
+        for height in (8, 12, 18):
+            with self.subTest(height=height):
+                lines = self.app._component_lines(100, height)
+                self.assertTrue(any(line.startswith(self.style.glyph("arrow")) for line in lines))
 
     def test_quit_asks_when_selection_changed(self) -> None:
         self.at_components()

@@ -8,8 +8,10 @@ a fake `AppContext` and never touch a terminal; `run()` is the thin loop
 that connects it to `terminal.Terminal`.
 
 Screens: splash -> harnesses -> components (with details) -> review ->
-install. `Esc` goes back, `?` shows the keys, `q` quits (asking first when
-the selection changed), `U` pulls the clone when that is safe.
+install. Right (or `enter`) moves to the next step and left (or `esc`) back
+to the previous one; on Review only `enter` applies, so an arrow key never
+installs anything. `?` shows the keys, `q` quits (asking first when the
+selection changed), `U` pulls the clone when that is safe.
 
 Standard library only, Python 3.9+.
 """
@@ -77,26 +79,24 @@ OP_STYLE = {
 
 HELP = (
     ("Everywhere", ""),
+    ("up / down", "move the cursor (also j / k)"),
+    ("space", "mark or unmark the line under the cursor"),
+    ("right / enter", "next step"),
+    ("left / esc", "previous step"),
     ("?", "this help"),
     ("q", "quit (asks when there are unsaved choices)"),
-    ("ctrl-c", "quit at once"),
     ("U", "update this clone from its remote (git pull --ff-only)"),
-    ("esc", "back"),
     ("", ""),
     ("Components", ""),
-    ("up/down j/k", "move; pgup pgdn home end jump"),
-    ("space", "select or unselect; on Mode, switch link/copy"),
-    ("a / n", "select all / none"),
-    ("u", "select every skill that has an update"),
-    ("m / c", "toggle mode / command wrappers"),
+    ("a", "mark all skills, or none when all are marked"),
+    ("u", "mark every skill that has an update"),
+    ("i", "full details of the skill under the cursor"),
     ("/", "filter by name or description"),
-    ("i or right", "details of the skill under the cursor"),
-    ("enter", "review the changes"),
     ("", ""),
     ("Review", ""),
+    ("enter", "apply the changes (the right arrow never does)"),
     ("space", "overwrite the highlighted item (a backup is kept)"),
     ("v", "show or hide unchanged items"),
-    ("enter", "apply"),
 )
 
 
@@ -392,9 +392,9 @@ class App:
             if not self.touched:
                 self._initial_selection()
                 self.initial = self._selection_key()
-        elif key == "enter":
+        elif key in ("enter", "right"):
             if not self.checked:
-                self.notice = "Select at least one harness."
+                self.notice = "Mark at least one harness with space."
                 return
             if not self.touched:
                 self._initial_selection()
@@ -403,7 +403,7 @@ class App:
             rows = self._selectable(self._component_rows())
             if self.cursor not in rows:
                 self.cursor = rows[0] if rows else 0
-        elif key == "esc":
+        elif key in ("esc", "left"):
             self.screen = "splash"
 
     # components
@@ -427,10 +427,7 @@ class App:
         if any(h.supports_commands for h in self._selected_harnesses()):
             rows.append(("option", "commands"))
         rows.append(("option", "mode"))
-        if catalog.agents:
-            rows.extend(("agent", a.name) for a in catalog.agents)
-        else:
-            rows.append(("info", "Agents  none in this release"))
+        rows.extend(("agent", a.name) for a in catalog.agents)
         return rows
 
     @staticmethod
@@ -474,39 +471,38 @@ class App:
         elif key == "space":
             self._toggle(kind, name)
         elif key == "a":
-            self.chosen = {s.name for s in self.ctx.catalog.skills}
+            every = {s.name for s in self.ctx.catalog.skills}
+            self.chosen = set() if self._wanted() >= every else every
             self.touched = True
         elif key == "n":
             self.chosen = set()
             self.touched = True
         elif key == "u":
-            outdated = {
-                s.name for s in self.ctx.catalog.skills
-                if any(self._status(h.id, s.key) == Status.OUTDATED for h in self._selected_harnesses())
-            }
+            outdated = self._outdated()
             if outdated:
                 self.chosen |= outdated
                 self.touched = True
                 self.notice = f"Selected {len(outdated)} skill(s) with updates."
             else:
                 self.notice = "No updates: every installed skill is current."
-        elif key == "m":
-            self._toggle("option", "mode")
-        elif key == "c":
-            self._toggle("option", "commands")
         elif key == "/":
             self.filtering = True
-        elif key in ("i", "right") and kind == "skill":
+        elif key == "i" and kind == "skill":
             self.details_item = name
             self.details_scroll = 0
             self.screen = "details"
-        elif key == "enter":
+        elif key in ("enter", "right"):
             self._open_review()
-        elif key == "esc":
-            if self.filter:
-                self.filter = ""
-            else:
-                self.screen = "harnesses"
+        elif key == "esc" and self.filter:
+            self.filter = ""
+        elif key in ("esc", "left"):
+            self.screen = "harnesses"
+
+    def _outdated(self) -> set:
+        return {
+            s.name for s in self.ctx.catalog.skills
+            if any(self._status(h.id, s.key) == Status.OUTDATED for h in self._selected_harnesses())
+        }
 
     def _toggle(self, kind: str, name: str) -> None:
         self.touched = True
@@ -611,7 +607,7 @@ class App:
                 self.done = True
                 return
             self._start_install()
-        elif key == "esc":
+        elif key in ("esc", "left"):
             self.screen = "components"
 
     # install
@@ -750,38 +746,71 @@ class App:
         return " " + f" {style.fg(style.glyph('gt'), THEME['line'])} ".join(parts)
 
     def _footer(self, width: int) -> List[str]:
-        hints = self._hints()
-        lines = key_hints(hints, width - 1, self.style)
-        lines = [" " + line for line in lines]
+        """A rule, one line saying what to do here, and the keys."""
+        style = self.style
+        lines = [style.fg(style.glyph("hline") * width, THEME["line"])]
         if self.notice:
-            lines.insert(0, " " + self.style.fg(self.style.truncate(self.notice, width - 1), THEME["check"]))
+            lines.append(" " + style.fg(style.truncate(self.notice, width - 1), THEME["check"]))
         elif self.filtering or self.filter:
             cursor = "_" if self.filtering else ""
-            lines.insert(0, " " + self.style.fg(f"filter: {self.filter}{cursor}", THEME["think"]))
+            lines.append(" " + style.fg(f"filter: {self.filter}{cursor}", THEME["think"]))
+        else:
+            instruction = self._instruction()
+            if instruction:
+                lines.append(" " + style.truncate(instruction, width - 1))
+        lines += [" " + line for line in key_hints(self._hints(width), width - 1, style)]
         return lines
 
-    def _hints(self) -> List[Tuple[str, str]]:
+    def _instruction(self) -> str:
+        if self.dialog is not None:
+            return ""
+        screen = self.screen
+        mark = self.style.glyph("checkbox_on")
+        if screen == "harnesses":
+            return f"Press space to mark ({mark}) each harness to install into, then {self._key('right')} to continue."
+        if screen == "components":
+            return f"Space marks ({mark}) a skill to install; unmarking an installed one removes it."
+        if screen == "details":
+            return f"Press space to mark or unmark this skill, {self._key('left')} to go back."
+        if screen == "review":
+            if not self._changes():
+                return "Nothing to change."
+            return "Nothing is changed until you press enter."
+        if screen == "install" and not self.installing:
+            return "Finished. Press enter to exit."
+        return ""
+
+    def _key(self, name: str) -> str:
+        return self.style.glyph("key_" + name)
+
+    def _hints(self, width: int = 0) -> List[Tuple[str, str]]:
         if self.dialog is not None:
             return list(self.dialog["hints"])
         if self.filtering:
             return [("type", "to filter"), ("enter", "keep"), ("esc", "clear")]
         screen = self.screen
+        updown = self._key("up") + self._key("down") if self.style.unicode else "up/down"
+        right, left = self._key("right"), self._key("left")
         if screen == "splash":
-            return [("enter", "start"), ("?", "help"), ("q", "quit")]
+            return [(right, "start"), ("?", "help"), ("q", "quit")]
         if screen == "harnesses":
-            return [("space", "select"), ("s", "user/project"), ("enter", "continue"),
-                    ("esc", "back"), ("q", "quit")]
+            return [(updown, "move"), ("space", "mark"), (right, "next"), (left, "back"),
+                    ("s", f"install into the {'user' if self.scope == 'project' else 'project'} instead"),
+                    ("q", "quit")]
         if screen == "components":
-            return [("space", "select"), ("i", "details"), ("a", "all"), ("n", "none"),
-                    ("u", "updates"), ("m", "mode"), ("c", "commands"), ("/", "filter"),
-                    ("enter", "review"), ("esc", "back"), ("?", "help")]
+            hints = [(updown, "move"), ("space", "mark"), ("a", "all/none")]
+            if self._outdated():
+                hints.append(("u", "mark updates"))
+            if width < DETAILS_MIN_WIDTH:
+                hints.append(("i", "details"))
+            return hints + [(right, "review"), (left, "back"), ("?", "more keys")]
         if screen == "details":
-            return [("j/k", "scroll"), ("space", "select"), ("esc", "close")]
+            return [(updown, "scroll"), ("space", "mark"), (left, "back")]
         if screen == "review":
-            if not self._changes():
-                return [("enter", "exit"), ("esc", "back"), ("v", "show unchanged")]
-            return [("enter", "apply"), ("space", "overwrite"), ("v", "show unchanged"),
-                    ("esc", "back")]
+            hints = [("enter", "apply" if self._changes() else "exit")]
+            if self.candidates:
+                hints.append(("space", "overwrite"))
+            return hints + [("v", "show unchanged"), (left, "back")]
         if screen == "install":
             if self.installing:
                 return [("", "installing...")]
@@ -892,7 +921,7 @@ class App:
         box_height = max(3, height)
         list_lines = self._component_lines(inner, box_height - 2)
         list_lines = (list_lines + [""] * box_height)[: box_height - 2]  # boxes fill the screen
-        title = f"Skills {self.style.glyph('dot')} {len(self._wanted())} selected {self.style.glyph('dot')} mode {self.mode}"
+        title = f"Skills {self.style.glyph('dot')} {len(self._wanted())} of {len(self.ctx.catalog.skills)} marked"
         left = box(title, list_lines, left_width, THEME["line"], self.style)
         if not show_details:
             return left
@@ -912,11 +941,13 @@ class App:
 
     def _option_help(self, kind: str, name: str, width: int) -> List[str]:
         if kind == "option" and name == "mode":
-            text = ("link: symlinks to this clone, so a git pull updates every harness at once.\n\n"
+            text = ("Space switches between link and copy.\n\n"
+                    "link: symlinks to this clone, so a git pull updates every harness at once.\n\n"
                     "copy: real files, independent of the clone; the installer tracks their "
                     "version and offers updates.")
         elif kind == "option" and name == "commands":
-            text = ("Command wrappers let you type /<skill> in opencode. Claude Code registers "
+            text = ("Space turns it on or off. Command wrappers let you type /<skill> in opencode. "
+                    "Claude Code registers "
                     "skills as commands on its own, so it never gets them.")
         elif kind == "agent":
             agent = self.ctx.catalog.get("agent", name)
@@ -928,25 +959,29 @@ class App:
     def _component_lines(self, width: int, height: int) -> List[str]:
         style = self.style
         rows = self._component_rows()
-        harnesses = self._selected_harnesses()
-        col = 9
-        status_width = col * len(harnesses)
         name_width = max([len(s.name) for s in self.ctx.catalog.skills] + [10])
-        tag_width = max(0, width - 4 - name_width - 2 - status_width - 1)
+        fate_width = 20
+        tag_width = max(0, width - 4 - name_width - 2 - fate_width - 1)
         wanted = self._wanted()
         lines = []
+        first_group = True
+        cursor_line = 0  # rows and lines differ: the SETTINGS header takes two lines
         for index, (kind, name) in enumerate(rows):
             active = index == self.cursor
+            if active:
+                cursor_line = len(lines)
             arrow = style.glyph("arrow") if active else " "
             if kind == "group":
                 if name == "options":
-                    label = style.bold(style.fg("OPTIONS", THEME["muted"]))
-                    lines.append(label)
+                    lines.append("")
+                    lines.append(style.bold(style.fg("SETTINGS", THEME["muted"])))
                     continue
                 label = style.bold(style.fg(name.upper(), stage_colour(name)))
-                heads = "".join(pad(h.id[:col - 1], col) for h in harnesses)
-                gap = max(1, width - display_width(label) - status_width)
-                lines.append(label + " " * gap + style.fg(heads, THEME["muted"]))
+                if first_group:
+                    head = style.fg(pad("on apply", fate_width), THEME["muted"])
+                    label += " " * max(1, width - display_width(label) - fate_width) + head
+                    first_group = False
+                lines.append(label)
             elif kind == "skill":
                 item = self.ctx.catalog.get("skill", name)
                 on = name in wanted
@@ -957,22 +992,26 @@ class App:
                     tagline = f"required by {count}" if count else item.description
                 else:
                     tagline = item.tagline
-                cells = "".join(pad(self._status_cell(h.id, item.key), col) for h in harnesses)
+                fate, colour = self._fate(item, on)
                 text = (f"{arrow} {check} " + pad(style.fg(name, stage_colour(item.stage)), name_width)
-                        + "  " + style.fit(style.fg(tagline, THEME["muted"]), tag_width) + " " + cells)
+                        + "  " + style.fit(style.fg(tagline, THEME["muted"]), tag_width) + " "
+                        + style.fit(style.fg(fate, _colour(colour)), fate_width))
                 lines.append(self._cursor_line(text, width, active))
             elif kind == "option" and name == "commands":
                 check = style.glyph("checkbox_on" if self.commands else "checkbox_off")
-                text = f"{arrow} {check} Command wrappers (opencode)"
+                text = f"{arrow} {check} Add /commands for opencode"
                 lines.append(self._cursor_line(text, width, active))
             elif kind == "option" and name == "mode":
-                link = f"{style.glyph('lt')} link {style.glyph('gt')}" if self.mode == "link" else "  link  "
-                copy = f"{style.glyph('lt')} copy {style.glyph('gt')}" if self.mode == "copy" else "  copy  "
-                link = style.bold(link) if self.mode == "link" else style.fg(link, THEME["muted"])
-                copy = style.bold(copy) if self.mode == "copy" else style.fg(copy, THEME["muted"])
-                text = f"{arrow}   Mode  {link} {copy}"
+                choices = []
+                for mode in ("link", "copy"):
+                    radio = style.glyph("radio_on" if self.mode == mode else "radio_off")
+                    choice = f"{radio} {mode}"
+                    choices.append(style.bold(choice) if self.mode == mode else style.fg(choice, THEME["muted"]))
+                note = "symlinks that follow this clone" if self.mode == "link" else \
+                    "independent copies of the files"
                 if not self.mode_touched and self._has_installed():
-                    text += style.fg("  new items; installed ones keep theirs", THEME["muted"])
+                    note = "only for new skills"
+                text = f"{arrow}   Install as  {'  '.join(choices)}   " + style.fg(note, THEME["muted"])
                 lines.append(self._cursor_line(text, width, active))
             elif kind == "agent":
                 on = name in self.agents
@@ -984,12 +1023,38 @@ class App:
         # Keep the cursor visible.
         if height <= 0:
             return []
-        if self.cursor < self.scroll:
-            self.scroll = max(0, self.cursor - 1)
-        elif self.cursor >= self.scroll + height:
-            self.scroll = self.cursor - height + 1
+        if cursor_line < self.scroll:
+            self.scroll = max(0, cursor_line - 1)
+        elif cursor_line >= self.scroll + height:
+            self.scroll = cursor_line - height + 1
         self.scroll = max(0, min(self.scroll, max(0, len(lines) - height)))
         return lines[self.scroll:self.scroll + height]
+
+    def _fate(self, item: Item, on: bool) -> Tuple[str, str]:
+        """What applying does to a skill, in words, and the colour to say it in."""
+        style = self.style
+        harnesses = self._selected_harnesses()
+        statuses = [self._status(h.id, item.key) for h in harnesses]
+        managed = [s in MANAGED for s in statuses]
+        if not on:
+            # Same rule as _plan_unwanted: a hand-made identical copy is kept.
+            scanned = [self.scans.get(h.id, {}).get(item.key) for h in harnesses]
+            if any(i is not None and i.status in (Status.LINKED, Status.UP_TO_DATE, Status.OUTDATED)
+                   and not (i.status == Status.UP_TO_DATE and not i.managed) for i in scanned):
+                return f"{'−' if style.unicode else '-'} remove", "red"
+            return "", "muted"
+        if Status.OUTDATED in statuses:
+            return f"{style.glyph('outdated')} update", "check"
+        if Status.MODIFIED in statuses:
+            return f"{style.glyph('modified')} edited, see review", "keep"
+        if any(s in (Status.UNMANAGED, Status.FOREIGN_LINK) for s in statuses):
+            return "! not ours, see review", "check"
+        if all(managed):
+            return f"{style.glyph('ok')} installed", "build"
+        if any(managed):
+            missing = [h.id for h, m in zip(harnesses, managed) if not m]
+            return "+ install in " + ", ".join(missing), "build"
+        return "+ install", "build"
 
     def _status_cell(self, harness_id: str, key: str) -> str:
         status = self._status(harness_id, key)

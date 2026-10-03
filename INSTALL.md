@@ -98,12 +98,15 @@ A full-screen menu opens. You can accept the defaults at any point.
 
 | Key | What it does |
 | --- | --- |
-| `Enter` | Continue |
-| `Esc` | Go back |
-| Arrows | Move |
-| Space | Select or unselect |
+| Up / down arrows | Move |
+| Space | Mark or unmark the line under the cursor |
+| Right arrow (or `Enter`) | Next step |
+| Left arrow (or `Esc`) | Previous step |
+| `Enter` on the review | Install (the right arrow never does) |
 | `i` | Details about a skill |
 | `?` | List all keys |
+
+The bottom of each screen says what to do there and which keys work.
 
 In order, it asks you to:
 

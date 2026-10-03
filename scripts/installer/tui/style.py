@@ -93,6 +93,12 @@ UNICODE_GLYPHS = {
     "dot": "\u00b7",
     "gt": "\u203a",
     "lt": "\u2039",
+    "key_up": "\u2191",
+    "key_down": "\u2193",
+    "key_left": "\u2190",
+    "key_right": "\u2192",
+    "radio_on": "\u25cf",
+    "radio_off": "\u25cb",
 }
 
 ASCII_GLYPHS = {
@@ -120,6 +126,12 @@ ASCII_GLYPHS = {
     "dot": "-",
     "gt": ">",
     "lt": "<",
+    "key_up": "up",
+    "key_down": "down",
+    "key_left": "left",
+    "key_right": "right",
+    "radio_on": "(*)",
+    "radio_off": "( )",
 }
 
 

@@ -82,8 +82,9 @@ full-screen terminal UI:
 
 With no arguments in an interactive terminal, `./scripts/install.sh` opens the
 TUI: choose harnesses, components and mode (`link` or `copy`), review the
-actions and apply them. `Enter` advances, `Esc` goes back, `i` opens the
-details of a skill, `?` lists the keys.
+actions and apply them. Space marks, the right arrow (or `Enter`) advances,
+the left arrow (or `Esc`) goes back, `Enter` on the review applies, `i`
+opens the details of a skill and `?` lists the keys.
 
 The same engine has a non-interactive CLI, useful in scripts and CI:
 

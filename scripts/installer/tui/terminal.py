@@ -283,9 +283,11 @@ class Terminal:
             return
         try:
             self._saved = termios.tcgetattr(self._fd)
-            # TCSADRAIN, not setraw's default TCSAFLUSH: a key typed while
-            # the installer was starting must not be thrown away.
-            tty.setraw(self._fd, termios.TCSADRAIN)
+            # TCSANOW, not setraw's default TCSAFLUSH: a key typed while the
+            # installer was starting must not be thrown away. Not TCSADRAIN
+            # either: on macOS it waits for unread output, such as the echo
+            # of that key, and can block forever.
+            tty.setraw(self._fd, termios.TCSANOW)
         except (termios.error, OSError, ValueError):
             self._saved = None
 

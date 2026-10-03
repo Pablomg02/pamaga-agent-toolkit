@@ -153,7 +153,8 @@ def pull_status(repo: Path) -> tuple[bool, str]:
     """Whether ``git pull --ff-only`` is safe, and why it is not.
 
     True only on a branch with an upstream, with a clean working tree whose
-    upstream is ahead and contains HEAD.
+    upstream is ahead and contains HEAD, or when HEAD already contains the
+    commit of a newer release on ``origin`` but not its tag.
     """
     branch = _git(repo, "rev-parse", "--abbrev-ref", "HEAD")
     if branch is None:
@@ -184,6 +185,17 @@ def pull_status(repo: Path) -> tuple[bool, str]:
             remote_sha = remote.split()[0] if remote and remote.split() else None
             if remote_sha and head and remote_sha != head.strip():
                 return True, f"origin/{branch} has new commits; updating is safe."
+            # CI tags a commit after pushing it, so the clone may already have
+            # the tagged code while lacking the tag. `pull` fetches tags, so a
+            # newer remote release still makes pulling the useful thing to do,
+            # but only when HEAD contains the tagged commit: on dev the release
+            # tag sits on main's merge commit, which pulling dev never brings.
+            release = _newest_release_reachable(repo)
+            remote_release = latest_remote_release(repo)
+            if remote_release and (release is None or release_key(remote_release) > release_key(release)):
+                tagged = _remote_tag_commit(repo, remote_release)
+                if tagged and _git(repo, "merge-base", "--is-ancestor", tagged, "HEAD") is not None:
+                    return True, f"origin has a newer release ({remote_release}); pulling fetches its tag."
         return False, f"Already up to date with {upstream}."
     if _git(repo, "merge-base", "--is-ancestor", "HEAD", upstream) is None:
         return False, f"Your branch and {upstream} have diverged; pull yourself."
@@ -191,8 +203,12 @@ def pull_status(repo: Path) -> tuple[bool, str]:
 
 
 def pull(repo: Path) -> tuple[bool, str]:
-    """Run ``git pull --ff-only``; returns (ok, output shown to the user)."""
-    output = _git(repo, "pull", "--ff-only", timeout=60)
+    """Run ``git pull --ff-only --tags``; returns (ok, output shown to the user).
+
+    ``--tags`` so a release tag created after the last fetch arrives even when
+    the branch itself is already up to date (the update notice compares tags).
+    """
+    output = _git(repo, "pull", "--ff-only", "--tags", timeout=60)
     if output is None:
         return False, "git pull --ff-only failed; pull in a terminal to see why."
     return True, output.strip() or "Already up to date."
@@ -216,6 +232,18 @@ def _latest_remote(repo: Path, pattern: re.Pattern, timeout: float) -> str | Non
         if pattern.match(tag):
             tags.append(tag)
     return max(tags, key=release_key) if tags else None
+
+
+def _remote_tag_commit(repo: Path, tag: str) -> str | None:
+    """Commit a tag on ``origin`` points to (peeled when annotated), or None."""
+    ref = f"refs/tags/{tag}"
+    output = _git(repo, "ls-remote", "origin", ref, ref + "^{}")
+    shas = {}
+    for line in (output or "").splitlines():
+        parts = line.split("\t")
+        if len(parts) == 2:
+            shas[parts[1]] = parts[0]
+    return shas.get(ref + "^{}") or shas.get(ref)
 
 
 def _is_dev_clone(repo: Path) -> bool:

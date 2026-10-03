@@ -113,11 +113,11 @@ In order, it asks you to:
 
 1. **Choose your agent(s)**: Claude Code, opencode, Antigravity CLI, or any
    combination. The ones already on your computer are detected.
-2. **Choose what to install**: all the skills is a good start.
-3. **Choose the mode**: *link* (a shortcut to this folder: `git pull` updates
-   everything instantly) or *copy* (independent files). If unsure, keep the
-   suggestion.
-4. **Review and apply.** Nothing happens until you confirm.
+2. **Choose what to install**: all the skills is a good start. At the bottom
+   of the same list, under *options*, is the **mode**: *link* (a shortcut to
+   this folder: `git pull` updates everything instantly) or *copy*
+   (independent files). If unsure, keep the suggestion.
+3. **Review and apply.** Nothing happens until you confirm.
 
 Then **restart your agent**. That is the step people forget.
 

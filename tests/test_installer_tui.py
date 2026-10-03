@@ -476,6 +476,17 @@ class TuiTest(unittest.TestCase):
         self.assertTrue(self.app.done)
         self.assertEqual(self.app.exit_code, 0)
 
+    def test_ctrl_c_waits_while_installing(self) -> None:
+        # Quitting mid-install would kill the worker before the manifests are saved.
+        self.app.installing = True
+        self.app.handle("ctrl-c")
+        self.assertFalse(self.app.done)
+        self.assertIn("Wait for the installation", self.app.notice)
+        self.app.installing = False
+        self.app.handle("ctrl-c")
+        self.assertTrue(self.app.done)
+        self.assertEqual(self.app.exit_code, 130)
+
     def test_install_failure_sets_exit_code_one(self) -> None:
         self.world.fail_action_names = {"make-plan"}
         self.app = self.fresh()

@@ -86,7 +86,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--harness", metavar="IDS", help="comma-separated harness ids or 'all'")
     parser.add_argument("--skills", default="all", metavar="all|NAMES", help="skills to install")
     parser.add_argument("--agents", default="all", metavar="all|NAMES", help="agents to install")
-    parser.add_argument("--mode", choices=("link", "copy"), help="install mode (default per D5)")
+    parser.add_argument(
+        "--mode", choices=("link", "copy"),
+        help="install mode (default: what is installed keeps its mode; new items are linked, "
+             "or copied on Windows or when everything installed is a copy)",
+    )
     parser.add_argument("--no-commands", action="store_true", help="skip the opencode command wrappers")
     parser.add_argument("--scope", choices=("user", "project"), default="user")
     parser.add_argument("--prune", action="store_true", help="remove managed items not selected")
@@ -223,7 +227,9 @@ def _plan_update(args, catalog: Catalog, harnesses: List[Harness], scans) -> Lis
     A skill installed only in opencode must not be added to Claude Code, and
     wrappers are only refreshed where some are installed already. Items keep
     their mode unless --mode is given, and leftovers whose source is gone
-    from the toolkit are removed (copies with a backup).
+    from the toolkit are removed (copies with a backup). Nothing else is
+    added or removed: a copy in opencode that Claude Code also has is
+    refreshed, and so are the wrappers of skills opencode reads from it.
     """
     actions: List[Action] = []
     for harness in harnesses:
@@ -246,6 +252,7 @@ def _plan_update(args, catalog: Catalog, harnesses: List[Harness], scans) -> Lis
             prune=True,
             force=force,
             keep_modes=args.mode is None,
+            keep_installed=True,
         )
         actions.extend(plan_actions(catalog, [harness], scans, selection, item_version_for(catalog)))
     return actions
@@ -356,7 +363,7 @@ def parse_names(value: str, items: Iterable[Item], parser: argparse.ArgumentPars
 
 
 def default_mode(harnesses: Iterable[Harness], scans: Mapping[str, Mapping[str, object]]) -> str:
-    """D5: link, or copy on Windows; an all-copy install history preselects copy."""
+    """Link, or copy on Windows; an all-copy install history preselects copy."""
     modes = set()
     for harness in harnesses:
         for record in scans.get(harness.id, {}).values():

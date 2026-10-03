@@ -306,6 +306,31 @@ class VersionsTest(unittest.TestCase):
         self.assertTrue(ok, output)
         self.assertEqual(versions.toolkit_version(self.repo_dir).tag, "0.2.0")
 
+    def test_pull_status_when_origin_moved_without_a_fetch(self) -> None:
+        """The usual case: the notice came from ls-remote and origin/<branch> is stale."""
+        self.build_tagged()
+        origin = self.root / "origin.git"
+        subprocess.run([GIT, "init", "--bare", "--quiet", str(origin)], capture_output=True, check=True)
+        self.git.run("remote", "add", "origin", str(origin))
+        branch = self.git.run("symbolic-ref", "--short", "HEAD").strip()
+        self.git.run("push", "--quiet", "--set-upstream", "origin", branch)
+        here = self.git.run("rev-parse", "HEAD").strip()
+        can_pull, reason = versions.pull_status(self.repo_dir)
+        self.assertFalse(can_pull)
+        self.assertIn("Already up to date", reason)
+        # Someone else pushes; this clone has not fetched, so its tracking
+        # ref still equals HEAD.
+        tip = self.git.commit("pushed from elsewhere", "f.txt", "three")
+        self.git.run("push", "--quiet", "origin", branch)
+        self.git.run("reset", "--hard", here)
+        self.git.run("update-ref", f"refs/remotes/origin/{branch}", here)
+        can_pull, reason = versions.pull_status(self.repo_dir)
+        self.assertTrue(can_pull, reason)
+        self.assertIn("has new commits", reason)
+        ok, output = versions.pull(self.repo_dir)
+        self.assertTrue(ok, output)
+        self.assertEqual(self.git.run("rev-parse", "--short", "HEAD").strip(), tip)
+
     def test_pull_status_ignores_a_new_release_outside_the_branch(self) -> None:
         """A dev clone after a release: the tag is on main's merge, which pulling dev never brings."""
         self.build_tagged()

@@ -303,6 +303,10 @@ class App:
 
     def handle(self, key: str) -> None:
         if key == "ctrl-c":
+            if self.installing:
+                # The worker saves the manifests at the end: let it finish.
+                self.notice = "Wait for the installation to finish."
+                return
             self.done = True
             self.exit_code = 130
             return

@@ -33,13 +33,13 @@ EXPECTED_REQUIRES = {
 }
 
 EXPECTED_SKILL_ORDER = [
-    "make-roadmap",
     "research-topic",
+    "make-roadmap",
     "make-plan",
     "new-ticket",
     "plan-page",
-    "find-bug",
     "implement-plan",
+    "find-bug",
     "deep-review",
     "ship-work",
     "save-learning",

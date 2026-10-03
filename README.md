@@ -51,27 +51,27 @@ shows what each one is for.
 Ten skills that cover the life of a change, from the first question to the
 pull request. You do not need to remember them: each one loads on its own
 when your request matches ("plan the CSV export", "ship it"), and each one is
-also a slash command (`/make-plan`). The table follows the diagram, stage by
-stage.
+also a slash command (`/make-plan`). Four of them are the main flow; the
+rest you call when you need them.
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/workflow-dark.svg">
-    <img src="images/workflow-light.svg" alt="Workflow: research-topic and new-ticket feed make-roadmap and make-plan; make-plan, implement-plan, deep-review and ship-work are the main flow; plan-page, find-bug and save-learning plug in." width="100%">
+    <img src="images/workflow-light.svg" alt="Main flow: make-plan with the best model, implement-plan with a cheap model, deep-review with the best model, then ship-work; large fixes go back to a plan. At any point: research-topic, make-roadmap, new-ticket, plan-page, find-bug and save-learning." width="100%">
   </picture>
 </p>
 
 | Skill | Use it when | You get |
 | --- | --- | --- |
+| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks, verifiable criteria and how to execute them (one agent, or subagents when it pays off), after your questions are answered. An independent critic on request for large plans. |
+| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready, or a small change is clear enough to build directly. | The code and its tests, with every criterion proven by a command, left uncommitted for you; progress and results logged in the plan if there is one. |
+| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings at the depth you choose (a quick pass, one generalist reviewer, or one reviewer per theme), on the themes that fit what changed, each checked before you see it. Then small fixes applied with tests, and large ones fixed or turned into a plan, as you choose. |
+| [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
 | [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. One agent by default, several in parallel only when the question splits; saved only if you ask. |
 | [`make‑roadmap`](skills/make-roadmap/SKILL.md) | The goal takes weeks or months. | A roadmap: milestones with exit criteria and the plans to derive from them. |
-| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks, verifiable criteria and how to execute them (one agent, or subagents when it pays off), after your questions are answered. An independent critic on request for large plans. |
 | [`new‑ticket`](skills/new-ticket/SKILL.md) | Something should be done, but not now. | A ticket in the backlog, in a minute. |
 | [`plan‑page`](skills/plan-page/SKILL.md) | You want to read or share a plan at a glance. | A self-contained `plan.html` in the plan's folder. |
-| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready, or a small change is clear enough to build directly. | The code and its tests, with every criterion proven by a command, left uncommitted for you; progress and results logged in the plan if there is one. |
 | [`find‑bug`](skills/find-bug/SKILL.md) | Something fails and the cause is not obvious. | The root cause, a fix, and a regression test. |
-| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings at the depth you choose (a quick pass, one generalist reviewer, or one reviewer per theme), on the themes that fit what changed, each checked before you see it, then the fixes you pick, with tests. |
-| [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
 | [`save‑learning`](skills/save-learning/SKILL.md) | You learned something worth remembering. | A short note in `docs/learnings/` that cites the plan it came from. |
 
 Everything the skills write lives in your repository, as plain Markdown:

@@ -297,11 +297,13 @@ def _plan_unwanted(
     selection: Selection,
 ) -> Action | None:
     status = installed.status
-    unsupported = item.kind == "command" and not harness.supports_commands
-    if unsupported:
+    if item.kind == "command" and not harness.supports_commands:
         reason = "commands are not supported by this harness"
+    elif item.kind == "agent" and not harness.supports_agents:
+        reason = "agents use another layout in this harness"
     elif item.kind == "skill" and _reads_shared_skills(harness, selection):
-        reason = f"already read from the {harness.skills_from} skills"
+        providers = [p for p in harness.skills_from if p in selection.harness_ids]
+        reason = f"already read from the {', '.join(providers)} skills"
     else:
         reason = "no longer selected"
     if status == Status.UP_TO_DATE and not installed.managed:
@@ -332,7 +334,7 @@ def _plan_unwanted(
 
 def _reads_shared_skills(harness: Harness, selection: Selection) -> bool:
     """True when this harness already sees the skills installed for another selected one."""
-    return harness.skills_from is not None and harness.skills_from in selection.harness_ids
+    return any(provider in selection.harness_ids for provider in harness.skills_from)
 
 
 def _is_wanted(
@@ -343,10 +345,12 @@ def _is_wanted(
     wanted_skills: set[str],
 ) -> bool:
     if item.kind == "skill":
-        # opencode reads ~/.claude/skills too: installing there as well would list every skill twice.
+        # opencode also reads the Claude Code dirs and, in project scope, the
+        # Antigravity .agents dir: installing here as well would list every
+        # skill twice. See skills_from in harnesses.py.
         return item.name in wanted_skills and not _reads_shared_skills(harness, selection)
     if item.kind == "agent":
-        return item.name in selection.agents
+        return item.name in selection.agents and harness.supports_agents
     skill = catalog.get("skill", item.name)
     return bool(
         selection.commands

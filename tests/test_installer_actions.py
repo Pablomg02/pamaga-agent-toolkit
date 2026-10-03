@@ -504,6 +504,11 @@ class PlanningTableTest(ToolkitFixture):
         self.assertEqual(sorted(a.name for a in actions), ["alpha", "beta"])
         self.assertTrue(all(a.op == "install" for a in actions))
 
+    def test_antigravity_gets_no_agents(self) -> None:
+        # Antigravity expects agents/<name>/agent.md, so agents/<name>.md would be ignored.
+        actions = self.plan(self.select(harnesses=("antigravity",), agents={"helper"}))
+        self.assertEqual(actions, [])
+
     def test_agents_are_planned_when_selected(self) -> None:
         actions = self.plan(self.select(agents={"helper"}))
         self.assertEqual(
@@ -546,6 +551,29 @@ class PlanningTableTest(ToolkitFixture):
     def test_harnesses_outside_the_selection_are_ignored(self) -> None:
         actions = self.plan(self.select(harnesses=("claude",), skills={"alpha"}))
         self.assertEqual({a.harness_id for a in actions}, {"claude"})
+
+    def test_user_scope_antigravity_does_not_share_with_opencode(self) -> None:
+        selection = self.select(harnesses=("opencode", "antigravity"), skills={"alpha"})
+        actions = self.plan(selection)
+        installs = {(a.harness_id, a.kind, a.name) for a in actions if a.op == "install"}
+        self.assertIn(("opencode", "skill", "alpha"), installs)
+        self.assertIn(("antigravity", "skill", "alpha"), installs)
+
+    def test_project_scope_opencode_shares_the_antigravity_skills(self) -> None:
+        project = self.root / "project"
+        harnesses = all_harnesses(scope="project", project=project, env={})
+        selection = Selection(
+            harness_ids=frozenset({"opencode", "antigravity"}),
+            skills=frozenset({"alpha"}),
+            agents=frozenset(),
+            commands=True,
+            mode="link",
+        )
+        actions = plan_actions(self.catalog, harnesses, {}, selection, stub_versions())
+        installs = {(a.harness_id, a.kind, a.name) for a in actions if a.op == "install"}
+        self.assertIn(("antigravity", "skill", "alpha"), installs)
+        self.assertNotIn(("opencode", "skill", "alpha"), installs)
+        self.assertIn(("opencode", "command", "alpha"), installs)
 
     def test_unknown_mode_is_rejected(self) -> None:
         selection = Selection(

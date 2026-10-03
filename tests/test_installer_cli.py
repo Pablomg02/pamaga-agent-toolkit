@@ -31,6 +31,7 @@ class CliTest(unittest.TestCase):
         self.home = Path(self._tmp.name)
         self.opencode = self.home / ".config" / "opencode"
         self.claude = self.home / ".claude"
+        self.antigravity = self.home / ".gemini" / "config"
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
@@ -79,6 +80,17 @@ class InstallCliTest(CliTest):
         )
         self.assertEqual(self.linked(self.opencode / "commands"), ["make-plan.md", "research-topic.md"])
         self.assertFalse(self.claude.exists())
+
+    def test_yes_installs_antigravity_skills_without_wrappers(self) -> None:
+        result = self.run_cli("--yes", "--harness", "antigravity", "--skills", "make-plan", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.linked(self.antigravity / "skills"),
+            ["make-plan", "plans-convention", "research-topic"],
+        )
+        # Antigravity CLI turns skills into /commands itself: no wrappers.
+        self.assertFalse((self.antigravity / "commands").exists())
+        self.assertFalse(self.opencode.exists())
 
     def test_copy_status_modified_skip_and_force(self) -> None:
         args = ("--yes", "--harness", "opencode", "--skills", "make-plan", "--mode", "copy", "--offline")
@@ -272,6 +284,13 @@ class ShimTest(CliTest):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("make-plan", self.linked(self.opencode / "skills"))
         self.assertIn("find-bug", self.linked(self.opencode / "skills"))
+
+    def test_shim_antigravity_target(self) -> None:
+        result = self.run_shim("antigravity")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("make-plan", self.linked(self.antigravity / "skills"))
+        self.assertFalse((self.antigravity / "commands").exists())
+        self.assertFalse(self.opencode.exists())
 
     def test_shim_unknown_argument(self) -> None:
         result = self.run_shim("vim")

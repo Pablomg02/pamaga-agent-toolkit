@@ -22,6 +22,7 @@ standard library only.
 | --- | --- | --- | --- |
 | opencode | `~/.config/opencode/skills/<name>/SKILL.md` | `~/.config/opencode/agents/<name>.md` | `~/.config/opencode/commands/<name>.md` |
 | Claude Code | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md` | not needed |
+| Antigravity CLI | `~/.gemini/config/skills/<name>/SKILL.md` | not installed (see below) | not needed |
 
 Notes:
 
@@ -30,10 +31,23 @@ Notes:
   puts the skills only in `~/.claude/skills/` (opencode would otherwise list
   each one twice) and gives opencode just its agents and command wrappers.
   If you install by hand, do the same: skills in one place only.
-- Claude Code registers every skill as `/<name>` on its own. Do not install
-  `commands/` there: the wrappers would collide with the skills.
-- Both agents also support project-scoped installs: `.opencode/` and `.claude/`
-  inside a repository. This guide covers the global (user) scope.
+- In project scope, opencode also reads `.agents/skills/`, the directory
+  Antigravity CLI uses: targeting both in a project installs the skills only
+  there, again to avoid duplicates.
+- Claude Code and Antigravity CLI register every skill as `/<name>` on their
+  own. Do not install `commands/` there: the wrappers would collide with the
+  skills.
+- Antigravity CLI also reads global skills from
+  `~/.gemini/antigravity-cli/skills/` and `~/.gemini/skills/` (the *Shared*
+  location, used together with Gemini CLI). The installer uses
+  `~/.gemini/config/`, the root shared by all the Antigravity surfaces, and
+  leaves the other two alone.
+- Antigravity CLI wants each agent as `agents/<name>/agent.md`, not
+  `agents/<name>.md`, so the installer gives it skills only. In the manual
+  steps below, skip the `agents` line for it.
+- All of them also support project-scoped installs: `.opencode/`, `.claude/`
+  and `.agents/` inside a repository. This guide covers the global (user)
+  scope.
 
 ## Option 1: symlinks (recommended)
 
@@ -42,7 +56,7 @@ your agents use the new content immediately.
 
 ```bash
 REPO="$HOME/GitHub/pamaga-agent-toolkit"
-DEST="$HOME/.config/opencode"   # opencode; use $HOME/.claude for Claude Code
+DEST="$HOME/.config/opencode"   # $HOME/.claude for Claude Code; $HOME/.gemini/config for Antigravity CLI
 
 mkdir -p "$DEST"/{skills,agents,commands}
 ln -sfn "$REPO"/skills/*/     "$DEST/skills/"
@@ -59,7 +73,7 @@ Use this if you prefer real files, for example to edit them per machine.
 
 ```bash
 REPO="$HOME/GitHub/pamaga-agent-toolkit"
-DEST="$HOME/.config/opencode"   # opencode; use $HOME/.claude for Claude Code
+DEST="$HOME/.config/opencode"   # $HOME/.claude for Claude Code; $HOME/.gemini/config for Antigravity CLI
 
 mkdir -p "$DEST"/{skills,agents,commands}
 cp -R "$REPO"/skills/*/     "$DEST/skills/"
@@ -124,6 +138,12 @@ or type `/` to see the commands.
 
 Restart Claude Code after installing. Skills are listed in `/help` and subagents
 in `/agents`.
+
+### Antigravity CLI
+
+Restart Antigravity CLI (`agy`) after installing. Skills are model-invoked and
+also registered as `/<name>` commands on their own; run `/skills` inside `agy`
+to see the list.
 
 ## Updating and uninstalling
 

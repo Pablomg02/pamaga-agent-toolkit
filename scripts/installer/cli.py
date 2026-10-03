@@ -35,7 +35,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 USAGE = """Usage:
   python3 scripts/install.py                 # TUI when stdin and stdout are TTYs; else help, exit 2
-  python3 scripts/install.py --yes [--harness opencode,claude|all] [--skills all|a,b]
+  python3 scripts/install.py --yes [--harness opencode,claude,antigravity|all] [--skills all|a,b]
                            [--agents all|a,b] [--mode link|copy] [--no-commands]
                            [--scope user|project] [--prune] [--force]
   python3 scripts/install.py --update [--pull] [--harness ...] [--mode link|copy] [--force]

@@ -8,6 +8,7 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PYTHON="${PAMAGA_PYTHON:-python3}"
 OPENCODE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 CLAUDE_DIR="$HOME/.claude"
+ANTIGRAVITY_DIR="$HOME/.gemini/config"
 
 usage() {
   cat <<EOF
@@ -16,15 +17,17 @@ Usage: $(basename "$0") [target] [--uninstall]
 Targets:
   opencode     Skills, agents and command wrappers for opencode (default)
   claude       Skills and agents for Claude Code (skills are already /commands)
-  all          Both of the above
+  antigravity  Skills for Antigravity CLI (skills are already /commands)
+  all          All of the above
 
 Options:
   --uninstall  Remove only the symlinks and copies installed by this toolkit
   -h, --help   Show this help
 
 Locations:
-  opencode     ${OPENCODE_DIR}/{skills,agents,commands}
-  Claude Code  ${CLAUDE_DIR}/{skills,agents}
+  opencode       ${OPENCODE_DIR}/{skills,agents,commands}
+  Claude Code    ${CLAUDE_DIR}/{skills,agents}
+  Antigravity    ${ANTIGRAVITY_DIR}/skills
 EOF
 }
 
@@ -37,7 +40,7 @@ TARGET="opencode"
 UNINSTALL=0
 for arg in "$@"; do
   case "$arg" in
-    opencode|claude|all) TARGET="$arg" ;;
+    opencode|claude|antigravity|all) TARGET="$arg" ;;
     --uninstall) UNINSTALL=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $arg" >&2; usage; exit 1 ;;
@@ -52,7 +55,8 @@ fi
 case "$TARGET" in
   opencode) HARNESSES="opencode" ;;
   claude) HARNESSES="claude" ;;
-  all) HARNESSES="opencode,claude" ;;
+  antigravity) HARNESSES="antigravity" ;;
+  all) HARNESSES="opencode,claude,antigravity" ;;
 esac
 
 if [ "$UNINSTALL" -eq 1 ]; then

@@ -7,8 +7,9 @@ hand.
 
 You need three things:
 
-1. **A coding agent**: [Claude Code](https://claude.com/claude-code) or
-   [opencode](https://opencode.ai). The toolkit adds skills to them.
+1. **A coding agent**: [Claude Code](https://claude.com/claude-code),
+   [opencode](https://opencode.ai) or [Antigravity CLI](https://antigravity.google)
+   (`agy`). The toolkit adds skills to them.
 2. **Python 3.9 or newer**, which runs the installer. Check with
    `python3 --version` (on Windows: `python --version`). If it is missing,
    get it from [python.org/downloads](https://www.python.org/downloads/)
@@ -110,8 +111,8 @@ The bottom of each screen says what to do there and which keys work.
 
 In order, it asks you to:
 
-1. **Choose your agent(s)**: Claude Code, opencode, or both. The ones already
-   on your computer are detected.
+1. **Choose your agent(s)**: Claude Code, opencode, Antigravity CLI, or any
+   combination. The ones already on your computer are detected.
 2. **Choose what to install**: all the skills is a good start.
 3. **Choose the mode**: *link* (a shortcut to this folder: `git pull` updates
    everything instantly) or *copy* (independent files). If unsure, keep the
@@ -125,6 +126,8 @@ Then **restart your agent**. That is the step people forget.
 - **Claude Code**: type `/` and look for commands such as `/make-plan`, or ask
   "what skills do you have?".
 - **opencode**: the same; type `/` to see the commands.
+- **Antigravity CLI**: run `/skills` inside `agy`; each skill is also a
+  `/make-plan` style command on its own.
 
 Then try it: *"Plan a CSV export for my project"* or `/make-plan`.
 

@@ -59,7 +59,7 @@ jobs:
           git fetch --tags --force
           tag=$(python3 scripts/next_release.py --notes notes.md)
           if [ -z "$tag" ]; then
-            echo "HEAD already tagged; nothing to do"
+            echo "A release already contains HEAD; nothing to do"
             exit 0
           fi
           gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file notes.md

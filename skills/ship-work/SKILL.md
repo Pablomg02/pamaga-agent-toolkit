@@ -10,6 +10,8 @@ branch and a pull request. Each of those steps is visible to other people, so
 the user chooses how far to go, and nothing goes out that they have not seen
 listed.
 
+Load the `plans-convention` skill first when the work relates to a plan.
+
 ## 1. Choose how far to go
 
 | Option | What happens |
@@ -28,8 +30,8 @@ genuinely open: the branch (see step 3), draft or ready, the target branch.
 1. Read `git status` and the full diff, staged and unstaged, and the last
    commits (`git log`), to learn the repository's message style.
 2. Find the plan, if any: a plan id mentioned in the conversation, or an
-   `in-progress` plan whose tasks match the changes (load the
-   `plans-convention` skill to look it up). Its *Justification* and
+   `in-progress` plan whose tasks match the changes (look it up with
+   `plans-convention`). Its *Justification* and
    *Results* are the best source for the why.
 3. List for the user, briefly, what goes in. Leave out and point out
    anything that should not be committed: secrets or credentials, `.env`

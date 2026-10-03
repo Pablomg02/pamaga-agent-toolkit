@@ -257,6 +257,56 @@ class UpdateCliTest(CliTest):
         self.assertFalse(os.path.lexists(gone))
         self.assertTrue((self.opencode / "skills" / "find-bug").is_symlink())
 
+    def test_update_keeps_opencode_wrappers_when_skills_come_from_claude(self) -> None:
+        self.run_cli("--yes", "--harness", "claude,opencode", "--skills", "find-bug", "--offline")
+        wrapper = self.opencode / "commands" / "find-bug.md"
+        self.assertTrue(wrapper.is_symlink())
+        result = self.run_cli("--update", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("unlink", result.stdout)
+        self.assertTrue(wrapper.is_symlink())
+        self.assertFalse((self.opencode / "skills").exists())
+
+    def test_update_keeps_opencode_copies_that_claude_also_has(self) -> None:
+        self.run_cli("--yes", "--harness", "opencode", "--skills", "find-bug", "--offline")
+        self.run_cli("--yes", "--harness", "claude", "--skills", "find-bug", "--offline")
+        result = self.run_cli("--update", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("unlink", result.stdout)
+        self.assertTrue((self.opencode / "skills" / "find-bug").is_symlink())
+        self.assertTrue((self.opencode / "commands" / "find-bug.md").is_symlink())
+
+    def test_update_refreshes_an_outdated_opencode_copy_claude_also_has(self) -> None:
+        self.run_cli("--yes", "--harness", "opencode", "--skills", "find-bug", "--mode", "copy",
+                     "--offline")
+        self.run_cli("--yes", "--harness", "claude", "--skills", "find-bug", "--offline")
+        skill_md = self.opencode / "skills" / "find-bug" / "SKILL.md"
+        skill_md.write_text("older release\n", encoding="utf-8")
+        sys.path.insert(0, str(REPO / "scripts"))
+        from installer.catalog import content_hash
+
+        manifest = self.manifest(self.opencode)
+        manifest["items"]["skill/find-bug"]["hash"] = content_hash(skill_md.parent)
+        (self.opencode / ".pamaga-toolkit.json").write_text(json.dumps(manifest), encoding="utf-8")
+        result = self.run_cli("--update", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(skill_md.read_text(encoding="utf-8"),
+                         (REPO / "skills" / "find-bug" / "SKILL.md").read_text(encoding="utf-8"))
+
+    def test_update_adds_no_wrappers_for_skills_only_claude_has(self) -> None:
+        self.run_cli("--yes", "--harness", "claude,opencode", "--skills", "find-bug", "--offline")
+        self.run_cli("--yes", "--harness", "claude", "--skills", "find-bug,new-ticket", "--offline")
+        result = self.run_cli("--update", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(os.path.lexists(self.opencode / "commands" / "new-ticket.md"))
+        self.assertTrue((self.opencode / "commands" / "find-bug.md").is_symlink())
+
+    def test_update_removes_wrappers_whose_skill_opencode_lost(self) -> None:
+        self.run_cli("--yes", "--harness", "claude,opencode", "--skills", "find-bug", "--offline")
+        self.run_cli("--uninstall", "--harness", "claude", "--offline")
+        self.run_cli("--update", "--offline")
+        self.assertFalse(os.path.lexists(self.opencode / "commands" / "find-bug.md"))
+
     def test_pull_that_is_not_possible_still_updates(self) -> None:
         self.run_cli("--yes", "--harness", "opencode", "--skills", "find-bug", "--offline")
         env = env_for(self.home)
@@ -286,6 +336,16 @@ class UpdateCliTest(CliTest):
         # once adopted it is ours and goes away with the rest.
         self.run_cli("--uninstall", "--harness", "claude", "--offline")
         self.assertFalse((self.claude / "skills" / "find-bug").exists())
+
+    def test_unselected_hand_made_copy_is_not_adopted_nor_pruned(self) -> None:
+        import shutil
+
+        shutil.copytree(REPO / "skills" / "find-bug", self.claude / "skills" / "find-bug")
+        self.run_cli("--yes", "--harness", "claude", "--skills", "new-ticket", "--offline")
+        self.assertNotIn("skill/find-bug", self.manifest(self.claude)["items"])
+        self.run_cli("--yes", "--harness", "claude", "--skills", "new-ticket", "--prune",
+                     "--offline")
+        self.assertTrue((self.claude / "skills" / "find-bug" / "SKILL.md").is_file())
 
     def test_uninstall_keeps_unrecorded_identical_copy(self) -> None:
         import shutil

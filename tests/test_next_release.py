@@ -102,6 +102,33 @@ class NextReleaseTest(unittest.TestCase):
         self.release()
         self.assertIsNone(next_release.next_release(self.repo))
 
+    def test_commit_older_than_the_last_release_gives_nothing(self) -> None:
+        # Two pushes to main whose CI finishes out of order: the newer one is
+        # released first, and the older one must not get a higher version.
+        self.commit("initial")
+        self.release()
+        self.commit("older push")
+        older = self.git("rev-parse", "HEAD").strip()
+        self.commit("newer push")
+        self.assertEqual(self.release(), "0.2.0")
+        self.git("checkout", "--quiet", older)
+        self.assertIsNone(next_release.next_release(self.repo))
+
+    def test_patch_marker_on_a_merged_branch_counts(self) -> None:
+        # Releases come from "Merge pull request ... from dev" commits; the
+        # [patch] marker is on the merged dev commit, not on the merge.
+        self.commit("initial")
+        self.release()
+        main = self.git("rev-parse", "--abbrev-ref", "HEAD").strip()
+        self.git("switch", "--quiet", "-c", "dev")
+        self.commit("fix typo [patch]")
+        self.git("switch", "--quiet", main)
+        self.git("merge", "--quiet", "--no-ff", "dev", "-m", "Merge pull request #1 from x/dev")
+        notes = next_release.release_notes(self.repo)
+        self.assertEqual(next_release.next_release(self.repo), "0.1.1")
+        self.assertIn("- fix typo [patch] (", notes)
+        self.assertNotIn("Merge pull request", notes)
+
     def test_notes_list_commits_since_last_release(self) -> None:
         self.commit("before")
         self.release()

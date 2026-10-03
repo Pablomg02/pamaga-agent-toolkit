@@ -131,6 +131,21 @@ class ValidateTest(unittest.TestCase):
         self.assertEqual(report.errors, [])
         self.assertTrue(any("orphan.md: bundled file not referenced" in w for w in report.warnings))
 
+    def test_references_to_another_skills_files(self) -> None:
+        self.repo.write_skill(
+            "demo",
+            "Do the demo thing. Use when the user asks for a demo.",
+            "Load the `helper` skill first. Run `python3 <helper>/scripts/run.py` and read\n"
+            "`<helper>/references/brief.md`; `<missing>/references/x.md` is a typo.\n",
+        )
+        helper = self.repo.write_skill("helper", "Help. Use when the demo needs help.", "Body.\n")
+        (helper.parent / "scripts").mkdir()
+        (helper.parent / "scripts" / "run.py").write_text("x")
+        errors = self.errors()
+        self.assertIn("references <helper>/references/brief.md, which does not exist", errors)
+        self.assertIn("references <missing>/references/x.md, which does not exist", errors)
+        self.assertNotIn("run.py", errors)
+
     def test_long_skill_warns(self) -> None:
         self.repo.write_skill("demo", "Do the demo thing. Use when the user asks for a demo.", "line\n" * 600)
         report = validate.validate(self.repo.root)

@@ -328,7 +328,10 @@ class PageTest(PlansTestCase):
         html = self.PAGE.replace(
             "<p>hi</p>",
             '<img src="data:image/png;base64,AAAA"><a href="https://example.com">link</a>'
-            '<a href="#why">why</a><script>var a = 1;</script>',
+            '<a href="#why">why</a><script>var a = 1;</script>'
+            # Code and prose that look like attributes but are not in a tag.
+            '<script>const data = rows.map(r => r);</script>'
+            '<p>The data = 5 lines</p><pre><code>src = load()</code></pre>',
         )
         (folder / "plan.html").write_text(html, encoding="utf-8")
         code, out, _ = self.run_cli("stamp-page", "1")

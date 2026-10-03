@@ -598,6 +598,25 @@ class PlanningTableTest(ToolkitFixture):
         bare = {"claude": scans["claude"]}
         self.assertEqual(shared_skill_losses(self.harnesses, bare, uninstall), [])
 
+    def test_no_warning_when_another_provider_keeps_the_skill(self) -> None:
+        # In a project opencode reads both .claude/skills and .agents/skills.
+        harnesses = all_harnesses(scope="project", project=self.root / "project", env={})
+        by_id = {harness.id: harness for harness in harnesses}
+        claude, opencode, antigravity = by_id["claude"], by_id["opencode"], by_id["antigravity"]
+        self.assertIn("antigravity", opencode.skills_from)
+        scans = {
+            "claude": {"skill/alpha": self.on_disk(claude, self.alpha)},
+            "antigravity": {"skill/alpha": self.on_disk(antigravity, self.alpha)},
+            "opencode": {"command/alpha": self.placed(opencode, self.alpha_command, Status.LINKED)},
+        }
+        selection = self.select(harnesses=("claude",), prune=True)
+        uninstall = plan_actions(self.catalog, harnesses, scans, selection, stub_versions())
+        self.assertEqual(shared_skill_losses(harnesses, scans, uninstall), [])
+        del scans["antigravity"]
+        uninstall = plan_actions(self.catalog, harnesses, scans, selection, stub_versions())
+        self.assertEqual(shared_skill_losses(harnesses, scans, uninstall),
+                         [("opencode", "alpha", "claude")])
+
     def test_harnesses_outside_the_selection_are_ignored(self) -> None:
         actions = self.plan(self.select(harnesses=("claude",), skills={"alpha"}))
         self.assertEqual({a.harness_id for a in actions}, {"claude"})

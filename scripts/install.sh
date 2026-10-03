@@ -28,6 +28,8 @@ Locations:
   opencode       ${OPENCODE_DIR}/{skills,agents,commands}
   Claude Code    ${CLAUDE_DIR}/{skills,agents}
   Antigravity    ${ANTIGRAVITY_DIR}/skills
+  (opencode also reads ${CLAUDE_DIR}/skills: skills already there, or
+  installed there in the same run, are not copied into its own folder)
 EOF
 }
 

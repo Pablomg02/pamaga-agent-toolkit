@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import os
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Iterable, Mapping
@@ -49,6 +49,7 @@ class Selection:
     prune: bool = False           # remove managed items not selected (TUI: True)
     force: frozenset[str] = frozenset()  # f"{harness_id}:{kind}/{name}" allowed to overwrite
     keep_modes: bool = False      # installed items keep their mode; ``mode`` is for new ones
+    keep_installed: bool = False  # what each harness has stays wanted (--update)
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,7 @@ class Action:
     to_version: str | None
     reason: str        # one short human sentence
     commit: str | None = None  # source commit recorded in the manifest
+    adopt: bool = True  # a kept identical copy without a record gets one
 
 
 @dataclass(frozen=True)
@@ -260,7 +262,15 @@ def _plan_harness(
                 # scope, the Antigravity .agents dir: a copy here as well
                 # would list the skill twice. See skills_from in harnesses.py.
                 shared = shared_source(harness, item.name, scans, selection.harness_ids)
-            wanted = shared is None and _is_wanted(catalog, harness, item, selection, wanted_skills)
+            kept = selection.keep_installed and installed.status in _MANAGED and (
+                # A wrapper stays only while its skill is still visible here.
+                kind != "command"
+                or item.name in wanted_skills
+                or shared_source(harness, item.name, scans) is not None
+            )
+            wanted = kept or (
+                shared is None and _is_wanted(catalog, harness, item, selection, wanted_skills)
+            )
             action = _plan_item(harness, item, installed, wanted, selection, versions, shared)
             if action is not None:
                 actions.append(action)
@@ -391,8 +401,9 @@ def _plan_unwanted(
     else:
         reason = "no longer selected"
     if status == Status.UP_TO_DATE and not installed.managed:
-        # An identical copy the user made by hand: not ours to delete.
-        return _keep(harness, item, installed, reason)
+        # An identical copy the user made by hand: not ours to delete, and
+        # not ours to adopt either, or a later prune would delete it.
+        return replace(_keep(harness, item, installed, reason), adopt=False)
     if status in (Status.LINKED, Status.UP_TO_DATE, Status.OUTDATED):
         if selection.prune:
             return _remove_action(harness, installed, backup=False, reason=reason)
@@ -586,7 +597,7 @@ def _adopt(
     """
     harness = by_id.get(action.harness_id)
     item = catalog.get(action.kind, action.name)
-    if harness is None or item is None or action.mode != "copy":
+    if harness is None or item is None or action.mode != "copy" or not action.adopt:
         return
     manifest = _manifest_for(harness, catalog, manifests)
     key = f"{action.kind}/{action.name}"

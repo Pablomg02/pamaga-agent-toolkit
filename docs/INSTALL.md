@@ -30,6 +30,10 @@ Notes:
   Claude Code are picked up there too. When the installer targets both, it
   puts the skills only in `~/.claude/skills/` (opencode would otherwise list
   each one twice) and gives opencode just its agents and command wrappers.
+  The same goes when only opencode is selected but `~/.claude/skills/`
+  already has a skill: it is not copied again. The TUI and `--status` show
+  such skills as installed in opencode "via Claude Code", and removing them
+  from Claude Code alone warns that opencode will lose them too.
   If you install by hand, do the same: skills in one place only.
 - In project scope, opencode also reads `.agents/skills/`, the directory
   Antigravity CLI uses: targeting both in a project installs the skills only

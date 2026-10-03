@@ -29,6 +29,8 @@ from installer.actions import (  # noqa: E402
     Selection,
     apply_actions,
     plan_actions,
+    shared_skill_losses,
+    shared_source,
 )
 from installer.catalog import Catalog, Item, content_hash, list_files, load_catalog  # noqa: E402
 from installer.harnesses import all_harnesses  # noqa: E402
@@ -547,6 +549,54 @@ class PlanningTableTest(ToolkitFixture):
         self.assertEqual(self.action_for(kept, "skill/alpha", "opencode").op, "keep")
         pruned = self.plan(self.select(harnesses=("opencode", "claude"), skills={"alpha"}, prune=True), scans)
         self.assertEqual(self.action_for(pruned, "skill/alpha", "opencode").op, "remove")
+
+    def on_disk(self, harness, item: Item, status: Status = Status.LINKED) -> Installed:
+        """``placed``, with the target really there (shared skills are read from disk)."""
+        item_target(harness, item.kind, item.name).mkdir(parents=True, exist_ok=True)
+        return self.placed(harness, item, status, mode="copy")
+
+    def test_opencode_alone_reads_the_skills_already_in_claude(self) -> None:
+        # Claude Code is not selected, but its dir still has alpha: opencode sees it there.
+        scans = {"claude": {"skill/alpha": self.on_disk(self.claude, self.alpha)}}
+        actions = self.plan(self.select(skills={"alpha", "beta"}), scans)
+        installs = {a.name for a in actions if a.kind == "skill" and a.op == "install"}
+        self.assertEqual(installs, {"beta"})
+
+    def test_opencode_copies_already_in_claude_are_pruned_as_duplicates(self) -> None:
+        scans = {
+            "opencode": {"skill/alpha": self.placed(self.opencode, self.alpha, Status.LINKED)},
+            "claude": {"skill/alpha": self.on_disk(self.claude, self.alpha, Status.UNMANAGED)},
+        }
+        action = self.action_for(self.plan(self.select(skills={"alpha"}, prune=True), scans), "skill/alpha")
+        self.assertEqual((action.op, action.reason), ("remove", "already read from the claude skills"))
+
+    def test_unwanted_skills_say_no_longer_selected_even_when_shared(self) -> None:
+        scans = {"opencode": {"skill/alpha": self.placed(self.opencode, self.alpha, Status.LINKED)}}
+        actions = self.plan(self.select(harnesses=("opencode", "claude"), prune=True), scans)
+        self.assertEqual(self.action_for(actions, "skill/alpha").reason, "no longer selected")
+
+    def test_shared_source_checks_the_disk_or_the_selection(self) -> None:
+        scans = {"claude": {"skill/alpha": self.on_disk(self.claude, self.alpha)}}
+        self.assertEqual(shared_source(self.opencode, "alpha", scans), "claude")
+        self.assertIsNone(shared_source(self.opencode, "beta", scans))
+        self.assertEqual(shared_source(self.opencode, "beta", scans, {"claude"}), "claude")
+        self.assertIsNone(shared_source(self.claude, "alpha", scans))
+        missing = {"claude": {"skill/beta": self.placed(self.claude, self.beta, Status.LINKED)}}
+        self.assertIsNone(shared_source(self.opencode, "beta", missing))
+
+    def test_removing_a_claude_skill_warns_when_opencode_read_it(self) -> None:
+        scans = {
+            "claude": {"skill/alpha": self.on_disk(self.claude, self.alpha)},
+            "opencode": {"command/alpha": self.placed(self.opencode, self.alpha_command, Status.LINKED)},
+        }
+        uninstall = self.plan(self.select(harnesses=("claude",), prune=True), scans)
+        self.assertEqual(shared_skill_losses(self.harnesses, scans, uninstall), [("opencode", "alpha", "claude")])
+        # Removing it from both is what the user asked for: no warning.
+        both = self.plan(self.select(harnesses=("opencode", "claude"), prune=True), scans)
+        self.assertEqual(shared_skill_losses(self.harnesses, scans, both), [])
+        # An opencode without anything from the toolkit is not using it.
+        bare = {"claude": scans["claude"]}
+        self.assertEqual(shared_skill_losses(self.harnesses, bare, uninstall), [])
 
     def test_harnesses_outside_the_selection_are_ignored(self) -> None:
         actions = self.plan(self.select(harnesses=("claude",), skills={"alpha"}))

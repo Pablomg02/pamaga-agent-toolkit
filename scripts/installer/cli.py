@@ -22,13 +22,20 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterable, List, Mapping, Optional
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from installer import versions
-from installer.actions import Action, Selection, apply_actions, plan_actions
+from installer.actions import (
+    Action,
+    Selection,
+    apply_actions,
+    plan_actions,
+    shared_skill_losses,
+    shared_source,
+)
 from installer.catalog import Catalog, Item, load_catalog
 from installer.harnesses import Harness, all_harnesses
-from installer.state import BACKUP_DIR, Manifest, Status, scan
+from installer.state import BACKUP_DIR, Installed, Manifest, Status, scan
 from installer.versions import ItemVersion, latest_remote_dev_commit, latest_remote_release, pull, pull_status, toolkit_version
 
 REPO = Path(__file__).resolve().parents[2]
@@ -65,10 +72,6 @@ STATUS_WORDS = {
     Status.ORPHANED: "orphaned",
     Status.NOT_INSTALLED: "-",
 }
-SHARED_SKILLS_NOTE = (
-    "Note: opencode also reads the skills installed for Claude Code, so with",
-    "both selected the skills go only to ~/.claude/skills (no duplicates).",
-)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -122,7 +125,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         return print_status(args, catalog)
 
     harnesses = resolve_harnesses(args)
-    scans = {harness.id: scan(catalog, harness, Manifest.load(harness.base)) for harness in harnesses}
+    everyone, scans = scan_all(catalog, args)
     if args.uninstall:
         force = frozenset(
             f"{harness.id}:{key}"
@@ -162,13 +165,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     if selection is None:
         actions = _plan_update(args, catalog, harnesses, scans)
         if not any(a.op != "skip" for a in actions) and not any(
-            record.status in MANAGED for scanned in scans.values() for record in scanned.values()
+            record.status in MANAGED for harness in harnesses for record in scans[harness.id].values()
         ):
             print("Nothing from the toolkit is installed yet; use --yes to install it.")
             return 0
     else:
         actions = plan_actions(catalog, harnesses, scans, selection, item_version_for(catalog))
     _print_plan(actions, harnesses, scans, catalog, uninstall=args.uninstall)
+    for harness_id, name, provider in shared_skill_losses(everyone, scans, actions):
+        print(f"Warning: {_label(everyone, harness_id)} read skill {name} from "
+              f"{_label(everyone, provider)} and will no longer see it.")
     sys.stdout.flush()
     results = apply_actions(actions, catalog, harnesses, now=datetime.now().astimezone())
     failed = [result for result in results if not result.ok]
@@ -188,16 +194,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.uninstall:
         return 1 if failed else 0
 
-    planned = {a.harness_id for a in actions}
-    if {"opencode", "claude"} <= planned and any(
-        a.kind == "skill" and a.harness_id == "claude" and a.op not in ("keep", "skip", "remove")
-        for a in actions
-    ):
-        print()
-        for line in SHARED_SKILLS_NOTE:
-            print(line)
-        if any(a.kind == "skill" and a.harness_id == "opencode" and a.op == "keep" for a in actions):
-            print("Older copies in the opencode skills dir are kept; run with --prune to remove them.")
+    if selection is not None:
+        notes = shared_notes(catalog, everyone, harnesses, scans, selection)
+        kept = [a for a in actions
+                if a.kind == "skill" and a.op == "keep" and a.reason.startswith("already read from")]
+        if notes:
+            print()
+            for line in notes:
+                print(line)
+            if kept:
+                print("Older copies in its own skills dir are kept; run with --prune to remove them.")
     changed = [a for a in actions if a.op not in ("keep", "skip")]
     print()
     skipped = sum(1 for a in actions if a.op == "skip")
@@ -279,6 +285,43 @@ def _remote_hint() -> None:
 
 
 # -- helpers ---------------------------------------------------------------
+
+
+def scan_all(catalog: Catalog, args) -> Tuple[List[Harness], Dict[str, Mapping[str, Installed]]]:
+    """Every harness of the scope and its scan, selected or not.
+
+    Unselected ones matter too: opencode reads ~/.claude/skills even when
+    only opencode is being installed.
+    """
+    everyone = all_harnesses(args.scope, project=Path.cwd())
+    return everyone, {h.id: scan(catalog, h, Manifest.load(h.base)) for h in everyone}
+
+
+def shared_notes(
+    catalog: Catalog,
+    everyone: List[Harness],
+    harnesses: List[Harness],
+    scans: Mapping[str, Mapping[str, Installed]],
+    selection: Selection,
+) -> List[str]:
+    """One line per selected harness that gets its skills from another one's dir."""
+    wanted = catalog.required_closure(set(selection.skills))
+    lines = []
+    for harness in harnesses:
+        providers: Dict[str, int] = {}
+        for name in sorted(wanted):
+            provider = shared_source(harness, name, scans, selection.harness_ids)
+            if provider is not None:
+                providers[provider] = providers.get(provider, 0) + 1
+        for provider, count in providers.items():
+            source = next(h for h in everyone if h.id == provider)
+            lines.append(f"Note: {harness.label} reads {count} skill(s) from {source.dir_for('skill')} "
+                         f"({source.label}), so they are not copied to its own dir.")
+    return lines
+
+
+def _label(harnesses: Iterable[Harness], harness_id: str) -> str:
+    return next((h.label for h in harnesses if h.id == harness_id), harness_id)
 
 
 def resolve_harnesses(args) -> List[Harness]:
@@ -385,7 +428,7 @@ def _action_line(action: Action, scanned: Mapping[str, object], catalog: Catalog
 
 def print_status(args, catalog: Catalog) -> int:
     harnesses = resolve_harnesses(args)
-    scans = {harness.id: scan(catalog, harness, Manifest.load(harness.base)) for harness in harnesses}
+    everyone, scans = scan_all(catalog, args)
     if args.json:
         payload = {
             "toolkit": toolkit_version(catalog.repo).label,
@@ -396,6 +439,7 @@ def print_status(args, catalog: Catalog) -> int:
                         "mode": record.mode,
                         "installed_version": record.installed_version,
                         "source_version": _source_version(catalog, key),
+                        "via": _via(harness, record, scans),
                     }
                     for key, record in scans[harness.id].items()
                 }
@@ -425,7 +469,12 @@ def print_status(args, catalog: Catalog) -> int:
         ):
             continue  # wrappers nobody installed are noise
         cells = []
-        for record in records:
+        for harness, record in zip(harnesses, records):
+            via = _via(harness, record, scans) if record is not None else None
+            if via is not None:
+                provider = scans[via][key]
+                cells.append(f"{STATUS_MARK[provider.status]} via {_label(everyone, via)}")
+                continue
             if record is None or record.status == Status.NOT_INSTALLED:
                 cells.append(f"{STATUS_MARK[Status.NOT_INSTALLED]} not installed")
                 continue
@@ -446,6 +495,13 @@ def print_status(args, catalog: Catalog) -> int:
     print("= linked  * up to date  ^ update available  ~ modified locally  "
           "! not installed by the toolkit  x no longer in the toolkit")
     return 0
+
+
+def _via(harness: Harness, record: Installed, scans: Mapping[str, Mapping[str, Installed]]) -> Optional[str]:
+    """Harness whose skills dir gives `harness` this skill, when it has no copy of its own."""
+    if record.kind != "skill" or record.status not in (Status.NOT_INSTALLED, Status.ORPHANED):
+        return None
+    return shared_source(harness, record.name, scans)
 
 
 def _source_version(catalog: Catalog, key: str) -> Optional[str]:

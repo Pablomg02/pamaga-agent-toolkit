@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
-from installer.actions import Action, Result, Selection, plan_actions
+from installer.actions import Action, Result, Selection, plan_actions, shared_skill_losses, shared_source
 from installer.catalog import STAGE_ORDER, Catalog, Item
 from installer.harnesses import Harness
 from installer.state import Installed, Status
@@ -209,12 +209,30 @@ class App:
         installed = self.scans.get(harness_id, {}).get(key)
         return installed.status if installed else Status.NOT_INSTALLED
 
+    def _via(self, harness, item_name: str, planned: bool = False) -> Optional[str]:
+        """Harness whose skills dir gives `harness` this skill when it has no copy of its own.
+
+        With `planned`, a checked provider counts too: applying installs the skill there.
+        """
+        if self._status(harness.id, f"skill/{item_name}") in MANAGED:
+            return None
+        selected = frozenset(self.checked) if planned else frozenset()
+        return shared_source(harness, item_name, self.scans, selected)
+
+    def _label_of(self, harness_id: str) -> str:
+        return next((h.label for h in self.harnesses if h.id == harness_id), harness_id)
+
     def _initial_selection(self) -> None:
         selected = {h.id for h in self._selected_harnesses()}
         installed = {
             i.name
             for hid, scanned in self.scans.items() if hid in selected
             for i in scanned.values() if i.kind == "skill" and i.status in MANAGED
+        }
+        installed |= {
+            item.name
+            for harness in self._selected_harnesses()
+            for item in self.ctx.catalog.skills if self._via(harness, item.name)
         }
         known = {item.name for item in self.ctx.catalog.skills}
         self.chosen = (installed & known) or set(known)
@@ -883,9 +901,17 @@ class App:
     def _counts(self, harness_id: str) -> str:
         scanned = self.scans.get(harness_id, {})
         installed = sum(1 for i in scanned.values() if i.kind == "skill" and i.status in MANAGED)
+        harness = next((h for h in self.harnesses if h.id == harness_id), None)
+        via: Dict[str, int] = {}
+        for item in self.ctx.catalog.skills if harness is not None else ():
+            provider = self._via(harness, item.name)
+            if provider is not None:
+                via[provider] = via.get(provider, 0) + 1
         updates = sum(1 for i in scanned.values() if i.kind == "skill" and i.status == Status.OUTDATED)
         modified = sum(1 for i in scanned.values() if i.kind == "skill" and i.status == Status.MODIFIED)
         parts = [f"{installed} installed"]
+        for provider, count in via.items():
+            parts.append(f"{count} via {self._label_of(provider)}")
         if updates:
             parts.append(self.style.fg(f"{updates} update{'s' if updates != 1 else ''}", THEME["check"]))
         if modified:
@@ -1049,7 +1075,8 @@ class App:
         style = self.style
         harnesses = self._selected_harnesses()
         statuses = [self._status(h.id, item.key) for h in harnesses]
-        managed = [s in MANAGED for s in statuses]
+        managed = [s in MANAGED or self._via(h, item.name, planned=True) is not None
+                   for h, s in zip(harnesses, statuses)]
         if not on:
             # Same rule as _plan_unwanted: a hand-made identical copy is kept.
             scanned = [self.scans.get(h.id, {}).get(item.key) for h in harnesses]
@@ -1108,6 +1135,13 @@ class App:
             elif installed is not None and installed.installed_version and status in MANAGED:
                 text += f" ({installed.installed_version})"
             badge = self._status_cell(harness.id, item.key)
+            via = self._via(harness, item.name)
+            if via is not None:
+                provider = self.scans[via][item.key]
+                text = f"via {self._label_of(via)}"
+                if provider.installed_version:
+                    text += f" ({provider.installed_version})"
+                badge = self._status_cell(via, item.key)
             field(harness.id, f"{badge} {text}")
             if installed is not None:
                 for change in installed.changed_files[:12]:
@@ -1167,11 +1201,21 @@ class App:
                 counts[action.op] = counts.get(action.op, 0) + 1
             summary = ", ".join(f"{n} to {op}" for op, n in sorted(counts.items()))
             lines.append(style.bold(f"{len(changes)} change(s): ") + summary)
-        if {"opencode", "claude"} <= self.checked and any(
-            a.kind == "skill" and a.harness_id == "claude" and a.op != "remove" for a in self.actions
-        ):
-            lines.append(style.fg("opencode also reads ~/.claude/skills, so the skills go only "
-                                  "there (no duplicates).", THEME["muted"]))
+        for harness in self._selected_harnesses():
+            via: Dict[str, int] = {}
+            for name in self._wanted():
+                provider = self._via(harness, name, planned=True)
+                if provider is not None:
+                    via[provider] = via.get(provider, 0) + 1
+            for provider, count in via.items():
+                source = next(h for h in self.harnesses if h.id == provider)
+                lines.append(style.fg(f"{harness.label} reads {count} skill(s) from "
+                                      f"{source.dir_for('skill')}, so they are not copied "
+                                      "again (no duplicates).", THEME["muted"]))
+        for harness_id, name, provider in shared_skill_losses(self.harnesses, self.scans, self.actions):
+            lines.append(style.fg(f"{self._label_of(harness_id)} read {name} from "
+                                  f"{self._label_of(provider)} and will no longer see it.",
+                                  THEME["check"]))
         lines.append("")
         header_count = len(lines)
         body = []

@@ -12,7 +12,8 @@
         "Execution order waves are consistent with each task's Depends on",
         "Runs plans.py stamp-page and it reports no external references",
         "Contains no example content left from the template",
-        "Adds no information that is not in the plan folder"
+        "Adds no information that is not in the plan folder",
+        "States the plan's Execution mode (single agent or its subagent packages)"
       ]
     },
     {
@@ -28,12 +29,33 @@
     }
   ],
   "trigger_evals": [
-    {"query": "make an HTML page that explains plan 0012 so I can share it with the team", "should_trigger": true},
-    {"query": "regenerate the plan page for 0003, it's outdated", "should_trigger": true},
-    {"query": "I want a visual summary of the roadmap as a web page", "should_trigger": true},
-    {"query": "make a plan for the landing page", "should_trigger": false},
-    {"query": "build an HTML landing page for my product", "should_trigger": false},
-    {"query": "summarise plan 0012 for me here in chat", "should_trigger": false},
-    {"query": "implement plan 0012", "should_trigger": false}
+    {
+      "query": "make an HTML page that explains plan 0012 so I can share it with the team",
+      "should_trigger": true
+    },
+    {
+      "query": "regenerate the plan page for 0003, it's outdated",
+      "should_trigger": true
+    },
+    {
+      "query": "I want a visual summary of the roadmap as a web page",
+      "should_trigger": true
+    },
+    {
+      "query": "make a plan for the landing page",
+      "should_trigger": false
+    },
+    {
+      "query": "build an HTML landing page for my product",
+      "should_trigger": false
+    },
+    {
+      "query": "summarise plan 0012 for me here in chat",
+      "should_trigger": false
+    },
+    {
+      "query": "implement plan 0012",
+      "should_trigger": false
+    }
   ]
 }

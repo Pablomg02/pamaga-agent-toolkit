@@ -4,67 +4,102 @@
     {
       "id": 1,
       "prompt": "Implement plan 0008.",
-      "expected_output": "The coordinator reads the plan, asks about ambiguities and the git policy, records answers in plan.md, moves the folder to in-progress, records a test baseline, and runs implement → verify per task with at most two retries, updating the ledger after each task.",
+      "expected_output": "The plan's Execution says single agent. The agent checks readiness and asks about ambiguities, records the answers in plan.md, moves the folder to in-progress, records a test baseline, implements each task itself with tests, proves every criterion with a command, updates the ledger after each task, and leaves the changes uncommitted.",
       "files": [],
       "expectations": [
         "Checks readiness and asks about ambiguities before writing code",
         "Records every clarification in plan.md before starting",
-        "Asks for the git policy and records it in Implementation",
         "Moves the folder to in-progress with plans.py",
         "Records a baseline of failing tests before the first task",
-        "Each unit gets a brief with objective, scope, verbatim criteria and report format",
-        "A separate verifier checks real files and runs tests; the implementer report is not accepted as proof",
-        "No more than two retries per task",
+        "Implements the tasks itself without launching implementer or verifier subagents",
+        "Adds or updates tests for the changed behaviour",
+        "Every criterion in the ledger or Results has a command and its result as evidence",
         "The ledger in plan.md is updated after each task",
-        "Never pushes",
-        "Does not create or switch branches"
+        "Does not commit, push, or create or switch branches",
+        "Does not launch a review subagent; offers deep-review as a next step"
       ]
     },
     {
       "id": 2,
-      "prompt": "Implement the login feature.",
-      "expected_output": "No plan folder covers login; the agent says the skill needs an existing plan, suggests make-plan, and stops without writing code.",
+      "prompt": "Add a --dry-run flag to the export command that prints the files it would write without writing them.",
+      "expected_output": "No plan exists and none is needed: the agent states a short contract (change, files, out of scope, done when), implements the flag with a test, runs the suite, and reports the changes with evidence in chat, uncommitted, without creating a plan folder.",
       "files": [],
       "expectations": [
-        "Searches plans/ for a matching plan",
-        "States that no plan exists and suggests make-plan",
-        "Does not write any code or improvise a plan"
+        "States a short contract with change, files, out of scope and done-when checks before coding",
+        "Does not create a plan folder or ledger",
+        "Adds a test that fails without the change",
+        "Runs the full test suite and reports the result",
+        "Leaves the changes uncommitted"
       ]
     },
     {
       "id": 3,
+      "prompt": "Implement user authentication for the app.",
+      "expected_output": "No plan covers it and the request needs design decisions (session vs token, storage, providers); the agent says so and suggests make-plan instead of improvising a design.",
+      "files": [],
+      "expectations": [
+        "Recognises that the request needs design decisions",
+        "Suggests make-plan",
+        "Does not write code or improvise a design"
+      ]
+    },
+    {
+      "id": 4,
       "prompt": "Continue with plan 0008, we stopped halfway yesterday.",
       "expected_output": "The agent reads the ledger, checks the repository matches it, and resumes at the first task not marked done.",
       "files": [],
       "expectations": [
         "Reads the Implementation ledger",
         "Verifies the repository state against the ledger before continuing",
-        "Does not redo tasks already verified"
+        "Does not redo tasks already done"
       ]
     },
     {
-      "id": 4,
+      "id": 5,
       "prompt": "Implement plan 0011.",
-      "expected_output": "The plan has eight tasks: three independent ones on disjoint files and five one-line renames of the same config key. The coordinator groups the renames into one unit, runs at most three implementers at once, verifies each wave with one verifier that is told which files earlier waves changed, and records the waves in the ledger.",
+      "expected_output": "The plan's Execution says subagents with three packages: P1 and P2 on disjoint files can run together, P3 depends on both. The agent briefs one subagent per package, runs P1 and P2 together and P3 after them, records each package's evidence, then runs the full suite itself, without any verifier or review subagent.",
       "files": [],
       "expectations": [
-        "Groups the short related renames into a single implementer unit",
-        "Never runs more than three implementers at the same time",
-        "Does not run in parallel units that touch the same files",
-        "Launches one verifier per wave, not one per task",
-        "Tells the verifier which files earlier waves changed",
-        "Writes the waves in the Implementation ledger"
+        "Launches one implementer per package, following the Execution section",
+        "Runs P1 and P2 at the same time and P3 only after both finish",
+        "Each brief includes scope, interfaces, verbatim criteria and the baseline",
+        "Does not launch a verifier or reviewer subagent",
+        "Runs the full test suite itself after all packages finish"
       ]
     }
   ],
   "trigger_evals": [
-    {"query": "implement plan 0042", "should_trigger": true},
-    {"query": "execute the plan we wrote yesterday for the search feature", "should_trigger": true},
-    {"query": "let's start working on the plan in in-progress", "should_trigger": true},
-    {"query": "resume plan 0007 where we left it", "should_trigger": true},
-    {"query": "plan how to implement caching", "should_trigger": false},
-    {"query": "implement a binary search function in Python", "should_trigger": false},
-    {"query": "review the code from plan 0042", "should_trigger": false},
-    {"query": "create a roadmap for the v2 release", "should_trigger": false}
+    {
+      "query": "implement plan 0042",
+      "should_trigger": true
+    },
+    {
+      "query": "execute the plan we wrote yesterday for the search feature",
+      "should_trigger": true
+    },
+    {
+      "query": "resume plan 0007 where we left it",
+      "should_trigger": true
+    },
+    {
+      "query": "add a --verbose flag to the CLI that prints each file as it is processed",
+      "should_trigger": true
+    },
+    {
+      "query": "plan how to implement caching",
+      "should_trigger": false
+    },
+    {
+      "query": "explain how binary search works",
+      "should_trigger": false
+    },
+    {
+      "query": "review the code from plan 0042",
+      "should_trigger": false
+    },
+    {
+      "query": "create a roadmap for the v2 release",
+      "should_trigger": false
+    }
   ]
 }

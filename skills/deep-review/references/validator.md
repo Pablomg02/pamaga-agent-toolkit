@@ -1,9 +1,11 @@
 # Validator brief
 
 Reviewers produce false positives. Before anything reaches the user, each
-finding is checked by a fresh validator that did not write it. Send up to
-about ten findings per validator, grouped by file or area so the validator
-reads each file once. Fill the placeholders and send the text below.
+finding is checked. In a review by theme, a fresh validator that did not
+write it does this: send up to about ten findings per validator, grouped by
+file or area so it reads each file once, filling the placeholders below. In
+a quick or generalist review you validate yourself, following the same steps
+in a separate pass.
 
 ---
 

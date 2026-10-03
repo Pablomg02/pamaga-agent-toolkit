@@ -38,8 +38,9 @@ experience with this kind of thing** (no git)? Go to
 1. Run the installer, accept the defaults, and **restart your agent**.
 2. Open your agent in any project and type `/make-plan`, or just say
    *"plan a CSV export for this project"*.
-3. The agent asks you questions, drafts a `plan.md` under `plans/backlog/`,
-   and has it challenged by two independent critics before you approve it.
+3. The agent reads the code, asks you questions until nothing is ambiguous,
+   and drafts a `plan.md` under `plans/backlog/` precise enough for a cheap
+   model to implement.
 
 Every skill works the same way: say what you want in plain words, or call it
 as a slash command. You do not need to learn them upfront; the table below
@@ -62,14 +63,14 @@ stage.
 
 | Skill | Use it when | You get |
 | --- | --- | --- |
-| [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. Single or multi agent, as you choose; saved only if you ask. |
+| [`research‑topic`](skills/research-topic/SKILL.md) | You need an answer before deciding: "can we use X?", "how does Y work here?" | An answer backed by code and sources. One agent by default, several in parallel only when the question splits; saved only if you ask. |
 | [`make‑roadmap`](skills/make-roadmap/SKILL.md) | The goal takes weeks or months. | A roadmap: milestones with exit criteria and the plans to derive from them. |
-| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks and verifiable criteria, after your questions are answered and two independent critics have challenged it. |
+| [`make‑plan`](skills/make-plan/SKILL.md) | A feature, refactor or non-trivial fix needs designing before coding. | A `plan.md` with tasks, verifiable criteria and how to execute them (one agent, or subagents when it pays off), after your questions are answered. An independent critic on request for large plans. |
 | [`new‑ticket`](skills/new-ticket/SKILL.md) | Something should be done, but not now. | A ticket in the backlog, in a minute. |
 | [`plan‑page`](skills/plan-page/SKILL.md) | You want to read or share a plan at a glance. | A self-contained `plan.html` in the plan's folder. |
-| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready. | The code, built by subagents in small waves and checked by an independent verifier, with progress logged in the plan. |
+| [`implement‑plan`](skills/implement-plan/SKILL.md) | A plan is ready, or a small change is clear enough to build directly. | The code and its tests, with every criterion proven by a command, left uncommitted for you; progress and results logged in the plan if there is one. |
 | [`find‑bug`](skills/find-bug/SKILL.md) | Something fails and the cause is not obvious. | The root cause, a fix, and a regression test. |
-| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings from one reviewer per theme (bugs, security, tests…), each confirmed by a validator. |
+| [`deep‑review`](skills/deep-review/SKILL.md) | Before merging, or to audit existing code. | Findings at the depth you choose (a quick pass, one generalist reviewer, or one reviewer per theme), on the themes that fit what changed, each checked before you see it. |
 | [`ship‑work`](skills/ship-work/SKILL.md) | The work is done. | Commits, and if you want, a push and a pull request. You choose how far. |
 | [`save‑learning`](skills/save-learning/SKILL.md) | You learned something worth remembering. | A short note in `docs/learnings/` that cites the plan it came from. |
 

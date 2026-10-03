@@ -1,20 +1,17 @@
 # Implementer brief
 
-Fill every placeholder and send the text below as the subagent's task. The
-implementer knows only what this brief says, so it must stand on its own:
-describe this work, not the history of the session. Copy acceptance criteria
-and relevant decisions verbatim from the plan; do not paraphrase them.
-
-A unit is usually one task. When it groups several short tasks, repeat the
-task block for each one.
-
-For a retry, use the same brief and fill the *Previous attempt* section with
-the verifier's findings, verbatim.
+One brief per package of the plan's *Execution* section. Fill every
+placeholder and send the text below as the subagent's task. The implementer
+knows only what this brief says, so it must stand on its own: describe this
+work, not the history of the session. Copy acceptance criteria and relevant
+decisions verbatim from the plan; do not paraphrase them. Repeat the task
+block for each task in the package.
 
 ---
 
-You are implementing part of an approved plan: the task or tasks below, and
-nothing else.
+You are implementing one package of an approved plan: the tasks below, and
+nothing else. Nobody reviews your code after you: you are responsible for
+proving that it works, with commands you ran.
 
 **Repository root:** {{repo_root}}
 **Plan:** {{plan_path}} (read the *Justification* and *Approach* sections for
@@ -24,41 +21,44 @@ Other implementers may be working on other files of this repository at the
 same time. Stay inside your scope; if a test fails because of code outside
 it, report it instead of fixing it.
 
+**Scope — files you may create or modify:**
+{{files}}
+
+**Out of scope:** anything not needed for these tasks, including refactors,
+formatting and fixes elsewhere, even if you notice problems. Report them
+instead.
+
+**Interfaces you consume or must produce (exact names, signatures, paths):**
+{{interfaces}}
+
+**Decisions and constraints that apply (verbatim):**
+{{decisions}}
+
+**Project commands:** test `{{test_cmd}}`, lint `{{lint_cmd}}`, build `{{build_cmd}}`
+**Tests already failing before this work (baseline):** {{baseline}}
+
 ## Task {{task_id}} — {{task_name}}
 
 **Objective:**
 {{objective}}
 
-**Scope — files you may create or modify:**
-{{files}}
-
-**Out of scope:** anything not needed for this objective, including
-refactors, formatting and fixes elsewhere, even if you notice problems. Report
-them instead.
-
 **Acceptance criteria (verbatim from the plan):**
 {{criteria}}
-
-**Decisions and constraints that apply (verbatim):**
-{{decisions}}
-
-**What earlier tasks produced that you build on:**
-{{interfaces}}
-<!-- exact names, signatures, paths; "none" for the first task -->
-
-**Project commands:** test `{{test_cmd}}`, lint `{{lint_cmd}}`, build `{{build_cmd}}`
-
-**Previous attempt (retries only):**
-{{verifier_findings}}
 
 ## How to work
 
 - Read the code you are about to change and follow the conventions around it.
 - Add or update tests for the behaviour you change, in the project's existing
-  test style, unless the criteria say otherwise.
-- Run the relevant tests and linters before reporting. Do not report success
-  on work you have not run.
-- Do not commit, push, or change git state. The coordinator handles git.
+  test style, unless the criteria say otherwise. A new test must fail
+  without your change.
+- Run the relevant tests and linters, and check every criterion yourself.
+  A criterion is met only with evidence: a command and its output, or a file
+  and line. Never report success on work you have not run.
+- Before reporting, read your own diff: no debug code, no `TODO` or stub, no
+  disabled or deleted tests, no hard-coded results, no files outside scope.
+- If a criterion keeps failing after a few honest attempts, report it as
+  failing. Do not weaken the test or the criterion.
+- Do not commit, push, or change git state.
 - If you need a file outside the scope, a decision the plan does not make, or
   something is blocking you, stop and report it instead of guessing.
 
@@ -68,21 +68,20 @@ Reply in this format, and nothing else:
 
 ```
 ## Status
-DONE | DONE_WITH_CONCERNS | NEEDS_DECISION | BLOCKED
+DONE | NEEDS_DECISION | BLOCKED
 
 ## Changes
 - <path> — <what changed>
 
 ## Criteria
-- [x] <criterion> — <how you checked it: command and result>
+- [x] <criterion> — <command and result, or path:line>
 - [ ] <criterion> — <why it is not met>
 
-## Commands run
-- `<command>` → <pass/fail, key output>
-
-## Concerns, decisions needed or blockers
+## Decisions needed or blockers
 - <item, with the options you see>   (or "none")
 
 ## Noticed but out of scope
 - <path:line> — <issue>   (or "none")
 ```
+
+Use `DONE` only when every criterion is checked.

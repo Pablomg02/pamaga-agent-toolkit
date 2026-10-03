@@ -1,40 +1,54 @@
 ---
 name: implement-plan
-description: Execute an existing plan folder as a coordinator - briefs implementer subagents (short related tasks grouped together, at most three in parallel), has an independent verifier check the real files and tests against the acceptance criteria, retries at most twice, and keeps the plan's ledger up to date. Use when the user says "implement plan 0042", "execute the plan", "start working on the plan" or wants to resume a plan in progress. Requires a plan folder; without one it stops and suggests make-plan.
+description: Implement a plan folder, or a small, concrete change the user asks for directly - works through the tasks itself, or with subagents when the plan's Execution section says so, writes and runs tests, proves every acceptance criterion with a command and its output, and leaves the changes uncommitted for the user to check. Records progress and results in the plan when there is one. Use when the user says "implement plan 0042", "execute the plan", "resume plan 0007", or asks for a bounded change in this repository ("add a --dry-run flag to the export command"). Not for designing a change that still has open decisions (make-plan).
 ---
 
-# Implement a plan
+# Implement
 
-You are the coordinator. You make sure the plan is unambiguous, brief one
-implementer per task, have an independent verifier check the real result
-against the plan, and keep the plan's ledger up to date. You do not write the
-code yourself: keeping the roles separate is what makes the verification
-honest.
+Build exactly what was decided, and prove it works. Design decisions are
+not taken here: they come from the plan or from the user's request. That is
+what lets a small, cheap model implement safely. Whoever writes the code is
+responsible for testing it; there is no separate reviewer, so the evidence
+for every criterion has to be real (a command you ran and its output).
 
-Load the `plans-convention` skill first. `<plans-convention>` below stands
-for the folder that skill was loaded from.
+Load the `plans-convention` skill first when working from a plan.
+`<plans-convention>` below stands for the folder that skill was loaded from.
 
-## 1. Find the plan
+## 1. Know what to build
 
-- The user names a plan by id or path: `plans.py find <ref>`.
-- The user names none: `plans.py list --status in-progress`, then
-  `--status backlog`. If exactly one candidate fits the request, confirm it
-  with the user; if several do, ask which.
-- **No plan folder exists**: tell the user that this skill implements an
-  existing plan, suggest `make-plan`, and stop. Do not improvise a plan.
+**From a plan.** The user names a plan by id or path (`plans.py find <ref>`),
+or asks to implement or resume one (`plans.py list --status in-progress`,
+then `--status backlog`; confirm the candidate, or ask which if several fit).
+
 - `type: roadmap`: roadmaps are not implemented directly. List its derived
   plans and stop.
 - `type: ticket`: fine if it passes the readiness check below; otherwise
   suggest promoting it with `make-plan`.
 - Folder in `done/`: ask whether to reopen it before doing anything.
 - Folder in `in-progress/` with a ledger: this is a resume. Read the ledger,
-  check that the repository matches it (files exist, tests state), and
-  continue from the first task not marked done.
+  check that the repository matches it, and continue from the first task not
+  marked done.
 
-## 2. Readiness check
+**From a direct request.** No plan folder: the user describes the change.
+Restate it in chat as a short contract before writing code:
+
+```
+Change: <what will be different, in one or two sentences>
+Files: <the files you expect to touch>
+Out of scope: <tempting adjacent work you will not do>
+Done when: <the checks that prove it, as commands or observable behaviour>
+```
+
+Find the files and the test commands in the code yourself; ask the user only
+what the code cannot answer and would change the result. If the request
+needs design decisions (several reasonable approaches with different
+trade-offs), touches several unrelated concerns, or would take more than a
+few tasks, say so and suggest `make-plan` instead of improvising a design.
+
+## 2. Readiness check (plans)
 
 Read `plan.md` in full and every artifact it links. Before touching any code,
-list every point where an implementer would have to guess:
+list every point where you would have to guess:
 
 - tasks without exact files or without verifiable acceptance criteria;
 - anything under *Open questions*, any `TBD` or placeholder;
@@ -42,105 +56,85 @@ list every point where an implementer would have to guess:
 - contradictions between sections, or between the plan and the code as it is
   now (the code may have changed since the plan was written).
 
-Ask the user about every point, batched (up to four questions at a time, with
-your recommended option first). Write each answer into the plan *before*
-starting: in the *Decisions* table with source `user`, or by fixing the task
-it clarifies. The plan must remain the single source of truth; a
-clarification that lives only in the conversation is lost on the next
-session.
-
-If the plan is fundamentally underspecified (most tasks fail the check),
-recommend going back to `make-plan` instead of patching it here.
-
-Also ask how to handle git, in the same batch, unless the plan already says:
-
-| Option | Behaviour |
-| --- | --- |
-| No commits | Leave all changes uncommitted for the user. |
-| Commit per task | One commit per verified task on the current branch. |
-
-Work on the branch and folder the user is on: do not create or switch
-branches, and never push. Record the choice in *Implementation* as
-`Git policy: ...`.
+Ask the user about every point, batched (up to four questions at a time,
+with your recommended option first), and write each answer into the plan
+*before* starting: in the *Decisions* table with source `user`, or by fixing
+the task it clarifies. A clarification that lives only in the conversation
+is lost on the next session. If most tasks fail the check, recommend going
+back to `make-plan` instead of patching the plan here.
 
 ## 3. Prepare
 
-1. `plans.py move <id> in-progress`.
-2. Find the project's test, lint and build commands (plan, README,
-   CI config, package files).
-3. Record a baseline: run the test suite once and note what already fails, so
-   pre-existing failures are not blamed on the plan.
-4. Start the ledger in *Implementation* (format below).
-5. Group the tasks into units and waves, and write the grouping in the
-   ledger:
-   - **Unit**: what one implementer gets. Usually one task. Short related
-     tasks (a few lines in one or two files, mechanical edits, the same
-     change in several places) go together in one unit, so small work does
-     not cost a subagent pair per task. Keep a unit small enough to verify in
-     one pass.
-   - **Wave**: units that run at the same time. Up to **three** units that do
-     not depend on each other and touch disjoint files; when in doubt, one
-     unit per wave. Implementers share one working folder, so more of them
-     at once means more chances of stepping on each other's files, builds
-     and test runs.
+1. With a plan: `plans.py move <id> in-progress`.
+2. Find the project's test, lint and build commands (plan, README, CI config,
+   package files).
+3. Record a baseline: run the test suite once and note what already fails,
+   so pre-existing failures are not blamed on this change. With a plan,
+   write it at the top of *Implementation*.
 
-## 4. Wave loop
+## 4. Implement
 
-For each wave, in dependency order:
+Follow the plan's *Execution* section. Without one (a direct request, or an
+older plan), work as a single agent.
 
-1. **Brief.** Fill `references/implementer-brief.md` for each unit:
-   objective, scope and paths, acceptance criteria and decisions copied
-   verbatim, the interfaces earlier tasks produced, project commands, and the
-   report format.
-2. **Implement.** Launch the wave's implementers in parallel (at most three)
-   and wait for all of them before going on.
-3. **Handle the reports.**
-   - `DONE` / `DONE_WITH_CONCERNS`: go to verification; keep the concerns.
-   - `NEEDS_DECISION`: ask the user, record the answer in *Decisions*, and
-     re-brief. This does not count as a retry.
-   - `BLOCKED`: work out why. Missing context → re-brief with it. A flaw in
-     the plan → stop and ask the user how to amend the plan; record the
-     amendment as a deviation.
-4. **Verify.** Launch one fresh verifier for the whole wave with
-   `references/verifier.md`. Give it each unit's criteria, expected files and
-   implementer claims (as things to check), how to see the changes, the
-   baseline, and the files earlier waves changed, so it does not mistake
-   their work for this wave's. Never skip verification, and never accept an
-   implementer's report as proof.
-5. **Retry if needed.** For each unit with `FAIL`, re-brief its implementer
-   with the verifier's findings for that unit verbatim, then verify the
-   retried units again with one fresh verifier. At most two retries per unit
-   (three attempts in total). If a unit still fails, stop and go to step 6.
-6. **Record.** Update the ledger line of each task. If the git policy says
-   so, commit each unit separately with a message that names the plan and
-   its tasks (`0042 T1: add search index`, `0042 T3+T4: rename config
-   keys`).
+**Single agent.** Take the tasks in order. For each one:
 
-## 5. Final verification
+1. Read the code you are about to change and follow its conventions.
+2. Make the change, and add or update tests for the behaviour it changes,
+   in the project's test style.
+3. Run the relevant tests and linters. Fix what fails.
+4. Check every acceptance criterion and note the evidence: the command and
+   its result, or the file and line.
+5. With a plan, update its ledger line before going to the next task.
 
-When every task is done, launch one verifier for the whole plan: the plan's
-*Verification* section plus all task criteria, the full test suite against
-the baseline, and the full diff since the start. Treat a `FAIL` like a task
-failure: brief one implementer with all the findings, verify again, at most
-two retries.
+**Subagents.** One subagent per package from the *Execution* section, with
+`references/implementer-brief.md`. Launch packages that can run at the same
+time together (never more than three, never two that share files), and wait
+for them before launching the ones that depend on them. Each subagent tests
+and proves its own package; you do not re-review its code. When a report
+comes back:
 
-Then offer the user a `deep-review` of the changes; it looks for problems
-the acceptance criteria do not cover.
+- `DONE`: record its evidence in the ledger.
+- `NEEDS_DECISION`: ask the user, record the answer in *Decisions*, and send
+  the subagent the answer (or a new brief).
+- `BLOCKED`: missing context → re-brief with it. A flaw in the plan → stop
+  and ask the user how to amend it; record the amendment as a deviation.
 
-## 6. Stop when it does not converge
+When every package is done, run the full test suite, lint and build
+yourself: packages that pass alone can still break each other.
 
-When a unit exhausts its retries, or something outside the plan blocks the
-work, stop and report to the user:
+## 5. Prove it works
 
-- which unit and tasks, what was attempted, and the verifier's latest findings;
-- what you think the cause is (plan flaw, missing information, environment);
-- the options: amend the plan, give more context, take over manually, or
-  abandon.
+Before calling the work done, check all of this on the real files:
 
-Record the situation in the ledger. Do not keep retrying, lower the criteria,
-or mark the task done.
+- The full test suite passes, apart from the baseline failures.
+- Every acceptance criterion (and the plan's *Verification* section, or the
+  contract's *Done when*) has evidence you produced: a command and its
+  output, or a file and line. A criterion without evidence is not met.
+- New tests fail without the change: a test that would pass anyway proves
+  nothing.
+- The diff (`git status` and `git diff`) contains only what was asked: no
+  debug code, no `TODO` or stub left behind, no disabled or deleted tests,
+  no hard-coded results, no files outside the scope.
 
-## 7. Close
+When a failure's cause is not obvious, do not try changes at random: follow
+the method of the `find-bug` skill (reproduce, test one hypothesis at a
+time, fix the root cause). If something still does not converge (the
+same criterion keeps failing, or something outside the scope blocks it),
+stop and tell the user: what fails, what you tried, what you think the cause
+is, and the options (amend the plan, give more context, take over, abandon).
+Never relax a criterion, skip a test, or mark a task done to get past it.
+
+## 6. Finish
+
+Leave every change uncommitted: the user decides when it is good enough to
+commit. Do not create or switch branches, and never push.
+
+**Direct request.** Report in chat: what changed (files), the evidence for
+each *Done when* check, and anything you noticed but left out of scope.
+Nothing else to write.
+
+**Plan.**
 
 1. Fill *Results*: what was delivered against each goal, with evidence (test
    output, commands, files), and anything not delivered.
@@ -148,12 +142,14 @@ or mark the task done.
    follow-ups; offer to capture follow-ups with `new-ticket`) and run
    `plans.py move <id> done`.
 3. If the plan has a `parent` roadmap, update the plan's row in the
-   roadmap's *Derived plans* table and add a line to its *Implementation* log.
+   roadmap's *Derived plans* table and add a line to its *Implementation*
+   log.
 4. Apply the generated page rule if there is a `plan.html`.
 5. Run `plans.py validate`.
-6. Offer the next steps, without starting them: `ship-work` to commit, push
-   or open a pull request, and `save-learning` if the work taught something
-   non-obvious worth keeping.
+
+Then offer the next steps, without starting them: `deep-review` of the
+changes, `ship-work` to commit (and push or open a pull request), and
+`save-learning` if the work taught something non-obvious.
 
 ## Ledger format
 
@@ -161,15 +157,12 @@ The ledger lives in the plan's *Implementation* section. It survives context
 compaction and new sessions, so update it after every task, not at the end.
 
 ```markdown
-Git policy: commit per task
 Baseline (2026-10-03): 2 failing tests — test_legacy_export, test_flaky_io
-Waves: 1 = T1, T2 · 2 = T3+T4 (one unit) · 3 = T5
 
-- [x] T1 — add search index — verified, 1 attempt — commit 3f2a91c
-- [x] T2 — query parser — verified, 2 attempts (first failed: empty query crashed) — commit 8be01d4
-- [ ] T3 — rename config keys — in progress, attempt 1
-- [ ] T4 — update config docs — in progress, attempt 1
-- [ ] T5 — UI — pending
+- [x] T1 — add search index — `pytest tests/test_index.py` 6 passed
+- [x] T2 — query parser — `pytest tests/test_parser.py` 11 passed; empty query returns []
+- [ ] T3 — rename config keys — in progress (package P2)
+- [ ] T4 — UI — pending
 
 Deviations:
 - T2: also changed `src/util/text.py` (normalise accents); approved by user 2026-10-03.
@@ -180,18 +173,16 @@ Deviations:
 Launch subagents with your harness's task tool, using its general-purpose
 agent (`general-purpose` in Claude Code, `general` in opencode). Each one
 starts with no memory: the brief is all it knows, so never write "as
-discussed" or "like before". If the harness lets you choose models, use a
-cheaper one for mechanical tasks and a capable one for verification. If no
-subagents are available, play each role yourself in turn, and do the
-verification as a separate pass that re-reads the files and re-runs the
-commands instead of relying on what you remember writing.
+discussed" or "like before". If no subagents are available, implement the
+packages yourself, one after another.
 
 ## Red flags
 
-- Starting a task while the plan still has open questions.
-- Writing or fixing code yourself instead of re-briefing the implementer.
-- Marking a task done from the implementer's report without a verifier PASS.
+- Writing code while the plan still has open questions, or while a direct
+  request still needs a design decision.
+- Taking a design decision the plan or the user did not take.
+- Marking a criterion met without a command or file you checked yourself.
+- Weakening a test or a criterion so it passes.
 - A clarification that is in the conversation but not in `plan.md`.
-- More than three implementers at once, or parallel units that share files.
-- Retrying a third time, or relaxing a criterion so it passes.
-- Committing when the git policy says not to, creating branches, or pushing.
+- Subagents that share files, or more than three at once.
+- Committing, creating branches, or pushing.

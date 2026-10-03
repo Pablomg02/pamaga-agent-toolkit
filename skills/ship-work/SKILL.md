@@ -54,8 +54,10 @@ genuinely open: the branch (see step 3), draft or ready, the target branch.
   says why, not what the diff already shows. Reference the plan id when
   there is one (`0042: add search index`), and add any trailer the
   repository or the harness requires.
-- Stage files by name rather than everything at once, so excluded files stay
-  out.
+- Stage exactly what step 2 listed: files or folders by path, and only
+  folders whose whole content you reviewed. Never stage the whole repository
+  at once (`git add -A` or `git add .` at the root), so excluded and unseen
+  files stay out. Check the staged list before committing.
 - If a hook fails, fix the cause and create the commit again. Never bypass
   hooks (`--no-verify`) unless the user asks.
 
@@ -106,7 +108,7 @@ one's.
 ## Red flags
 
 - Pushing or opening a PR when the user only asked to commit.
-- `git add -A` with files nobody looked at.
+- Staging the whole repository, or a folder with files nobody looked at.
 - Force-pushing, `--no-verify`, or amending a commit that was already
   pushed, without the user asking.
 - A PR description that claims tests passed when they were not run.

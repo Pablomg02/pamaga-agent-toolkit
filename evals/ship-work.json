@@ -10,7 +10,8 @@
         "Asks whether to commit only, push, or open a PR before doing any of them",
         "Reads git status, the diff and recent log before committing",
         "Lists the files to be committed and flags anything suspicious (secrets, build output, unrelated changes)",
-        "Stages files by name, not with git add -A",
+        "Stages only the listed files or fully reviewed folders, never the whole repository at once",
+        "Checks the staged list before committing",
         "Does not push when the user chose commit only"
       ]
     },

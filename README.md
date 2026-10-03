@@ -13,25 +13,24 @@ project**.
 ## Quick install
 
 You need a coding agent ([Claude Code](https://claude.com/claude-code) or
-[opencode](https://opencode.ai)), Python 3.9+ and the
-[GitHub CLI](https://cli.github.com) (`gh`).
+[opencode](https://opencode.ai)), Python 3.9+ and [Git](https://git-scm.com).
 
 **Linux or macOS**
 
 ```bash
-gh repo clone Pablomg02/pamaga-agent-toolkit
+git clone https://github.com/Pablomg02/pamaga-agent-toolkit.git
 cd pamaga-agent-toolkit && ./scripts/install.sh
 ```
 
 **Windows** (PowerShell)
 
 ```powershell
-gh repo clone Pablomg02/pamaga-agent-toolkit
+git clone https://github.com/Pablomg02/pamaga-agent-toolkit.git
 cd pamaga-agent-toolkit; python scripts\install.py
 ```
 
 Want the **detailed step-by-step**, a **manual installation**, or have **no
-experience with this kind of thing** (no `gh`, no git)? Go to
+experience with this kind of thing** (no git)? Go to
 [INSTALL.md](INSTALL.md).
 
 ## Your first minute

@@ -1,6 +1,6 @@
 ---
 name: deep-review
-description: Multi-agent code review. Asks what to review (bugs, security, performance and optimisation, tests, simplification, project conventions, documentation quality, outdated docs) and over what scope, launches one reviewer subagent per theme in parallel, then has independent validators discard false positives before reporting. Use when the user asks for a review, code review, audit or second opinion of changes, a branch, a PR, a folder or a whole repository, or asks to look for bugs, optimisations or outdated docs.
+description: Multi-agent code review - asks for the scope and themes (bugs, security, performance, tests, simplification, project conventions, documentation quality, outdated docs) if not given, runs one reviewer subagent per theme in parallel, and has independent validators discard false positives before reporting. Use when the user asks for a code review, audit or second opinion of changes, a branch, a PR, a folder or the whole repository, or asks to look for bugs, optimisations or outdated docs in existing code. Not for debugging a known failure (find-bug) or reviewing a plan.
 ---
 
 # Deep review
@@ -15,16 +15,19 @@ This skill reports; it does not change code. Offer fixes at the end.
 
 ## Themes
 
-| Theme | File | Group |
+Each theme the user picks is one reviewer subagent, so the number of themes
+is the cost of the review.
+
+| Theme | File | Question |
 | --- | --- | --- |
-| Bugs and logic errors | `references/themes/bugs.md` | Correctness |
-| Security | `references/themes/security.md` | Correctness |
-| Tests | `references/themes/tests.md` | Correctness |
-| Performance and optimisation | `references/themes/performance.md` | Performance |
-| Simplification and maintainability | `references/themes/simplification.md` | Maintainability |
-| Project conventions | `references/themes/conventions.md` | Maintainability |
-| Documentation quality | `references/themes/docs-quality.md` | Documentation |
-| Outdated documentation | `references/themes/docs-outdated.md` | Documentation |
+| Bugs and logic errors | `references/themes/bugs.md` | Code |
+| Security | `references/themes/security.md` | Code |
+| Tests | `references/themes/tests.md` | Code |
+| Performance and optimisation | `references/themes/performance.md` | Code |
+| Simplification and maintainability | `references/themes/simplification.md` | Maintainability and docs |
+| Project conventions | `references/themes/conventions.md` | Maintainability and docs |
+| Documentation quality | `references/themes/docs-quality.md` | Maintainability and docs |
+| Outdated documentation | `references/themes/docs-outdated.md` | Maintainability and docs |
 
 ## 1. Decide what to review
 
@@ -47,11 +50,18 @@ Offer, with the detected default first and its size:
 If the user's request already makes the scope obvious (a path, "this PR"),
 do not ask about it.
 
-**Themes.** Offer the four groups from the table as a multiple choice where
-several can be picked, plus "all". Recommend a selection based on the scope
-and say why (for example: a docs-only change does not need Performance; a
-change to auth code should include Correctness). The user can also name
-individual themes.
+**Themes.** Unless the user already named the themes, let them pick each one
+with a poll: two multiple-choice questions where several options can be
+selected, *Code* and *Maintainability and docs*, with the four themes of the
+table as the options of each. Mark the themes you recommend for this scope
+with "(recommended)" in their label and say why in their description (a
+docs-only change does not need Performance; a change to auth code should
+include Security). Say that each selected theme is one reviewer, so fewer
+themes means a faster, cheaper review. If the user selects nothing, ask
+whether to cancel instead of guessing.
+
+Without a question tool, ask in chat with the themes as a numbered list,
+recommended ones marked, and let the user answer with numbers.
 
 ## 2. Prepare the review package
 

@@ -13,6 +13,7 @@ import argparse
 import datetime
 import hashlib
 import re
+import subprocess
 import sys
 import unicodedata
 from pathlib import Path
@@ -155,8 +156,55 @@ def resolve(plans_dir: Path, ref: str) -> Entry:
     return matches[0]
 
 
-def next_number(entries: list[Entry]) -> int:
-    return max((e.number for e in entries), default=0) + 1
+def git_lines(cwd: Path, *args: str) -> list[str]:
+    """Output lines of a git command, or [] if git is missing or fails."""
+    try:
+        result = subprocess.run(
+            ["git", *args], cwd=cwd, capture_output=True, text=True, check=False
+        )
+    except OSError:
+        return []
+    return result.stdout.splitlines() if result.returncode == 0 else []
+
+
+def ids_elsewhere(plans_dir: Path) -> dict[int, list[str]]:
+    """Ids used in other git worktrees and local branches, with where.
+
+    Two agents on different branches or worktrees would otherwise both pick
+    the same next id and collide at merge time.
+    """
+    root = plans_dir.resolve().parent
+    if not root.is_dir():
+        return {}
+    top = git_lines(root, "rev-parse", "--show-toplevel")
+    if not top:
+        return {}
+    toplevel = Path(top[0]).resolve()
+    try:
+        rel = plans_dir.resolve().relative_to(toplevel)
+    except ValueError:
+        return {}
+
+    found: dict[int, list[str]] = {}
+    for line in git_lines(root, "worktree", "list", "--porcelain"):
+        if not line.startswith("worktree "):
+            continue
+        other = Path(line[len("worktree "):]).resolve()
+        if other != toplevel:
+            for entry in scan(other / rel)[0]:
+                found.setdefault(entry.number, []).append(f"worktree {other}")
+    status_paths = [f"{rel.as_posix()}/{status}/" for status in STATUSES]
+    for branch in git_lines(root, "for-each-ref", "--format=%(refname:short)", "refs/heads"):
+        for path in git_lines(root, "ls-tree", "-d", "--name-only", branch, "--", *status_paths):
+            match = FOLDER_RE.match(path.rsplit("/", 1)[-1])
+            if match:
+                found.setdefault(int(match.group(1)), []).append(f"branch {branch}")
+    return found
+
+
+def next_number(entries: list[Entry], elsewhere: dict[int, list[str]]) -> int:
+    used = [e.number for e in entries] + list(elsewhere)
+    return max(used, default=0) + 1
 
 
 def page_status(folder: Path) -> str:
@@ -179,17 +227,18 @@ def sha256(path: Path) -> str:
 
 def cmd_next_id(plans_dir: Path, args: argparse.Namespace) -> int:
     entries, _ = scan(plans_dir)
-    print(format_id(next_number(entries)))
+    print(format_id(next_number(entries, ids_elsewhere(plans_dir))))
     return 0
 
 
 def cmd_check_id(plans_dir: Path, args: argparse.Namespace) -> int:
     number = parse_id(args.id)
     entries, _ = scan(plans_dir)
-    used = [e for e in entries if e.number == number]
+    used = [str(e.path) for e in entries if e.number == number]
+    used += ids_elsewhere(plans_dir).get(number, [])
     if used:
-        for entry in used:
-            print(f"used: {entry.path}")
+        for where in used:
+            print(f"used: {where}")
         return 1
     print(f"free: {format_id(number)}")
     return 0
@@ -208,8 +257,8 @@ def cmd_new(plans_dir: Path, args: argparse.Namespace) -> int:
             raise PlanError(f"parent {parent.id} is a {parent_type or 'unknown type'}, not a roadmap")
         parent_line = f'parent: "{parent.id}"\n'
 
-    number = next_number(entries)
-    folder = plans_dir / args.status / f"{format_id(number)}-{slug}"
+    number = next_number(entries, ids_elsewhere(plans_dir))
+    folder = plans_dir / "backlog" / f"{format_id(number)}-{slug}"
     template = (TEMPLATES_DIR / f"{args.type}.md").read_text(encoding="utf-8")
     title = args.title.replace("\\", "\\\\").replace('"', '\\"')
     content = (
@@ -363,12 +412,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("id")
     p.set_defaults(func=cmd_check_id)
 
-    p = sub.add_parser("new", help="create a plan folder from a template and print its path")
+    p = sub.add_parser("new", help="create a plan folder in backlog/ from a template and print its path")
     p.add_argument("--title", required=True)
     p.add_argument("--type", choices=TYPES, default="plan")
     p.add_argument("--slug", help="default: derived from the title")
     p.add_argument("--parent", help="id of the roadmap this plan derives from")
-    p.add_argument("--status", choices=STATUSES, default="backlog")
     p.set_defaults(func=cmd_new)
 
     p = sub.add_parser("find", help="print the folder of a plan")

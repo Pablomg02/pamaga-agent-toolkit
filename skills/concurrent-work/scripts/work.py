@@ -173,6 +173,12 @@ def cmd_start(args: argparse.Namespace) -> int:
         print("nothing created; ask the user, then retry with --allow-overlap if they agree")
         return 2
 
+    base = args.base or git("rev-parse", "--abbrev-ref", "HEAD", cwd=main_root)
+    if base == "HEAD":
+        raise WorkError(
+            f"{main_root} is not on a branch (detached HEAD), so there is nothing to "
+            "merge back into; pass --base <branch>"
+        )
     branch = BRANCH_PREFIX + args.slug
     worktree = main_root.parent / f"{main_root.name}-work" / args.slug
     stamp = now().isoformat()
@@ -181,7 +187,7 @@ def cmd_start(args: argparse.Namespace) -> int:
         "status": "working",
         "branch": branch,
         "worktree": str(worktree),
-        "base": args.base or git("rev-parse", "--abbrev-ref", "HEAD", cwd=main_root),
+        "base": base,
         "paths": ", ".join(paths),
         "expect": args.expect or "-",
         "progress": "started",

@@ -1,5 +1,5 @@
 ---
-description: How to modify a repository when other agents or sessions may be working on it at the same time - check a shared board of who is doing what, work on your own branch in your own git worktree, signal progress, integrate early, and clean up when done. Use before starting any task that changes files in a repository, and whenever the user mentions parallel agents, several sessions, worktrees, or work colliding.
+description: Opt-in isolation for agents working on the same repository at once - each one works on its own branch in its own git worktree and registers on a shared board (.git/agent-work/) that shows who is doing what, flags overlapping paths and stale sessions, and integrates early. Use only when the user explicitly asks for it - mentions several agents or sessions working on the repository at the same time, asks to work in a separate worktree or isolated branch, asks who else is working here, or names this skill. Not for ordinary edits, even large ones.
 ---
 
 Load and follow the `concurrent-work` skill. $ARGUMENTS

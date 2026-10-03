@@ -35,6 +35,7 @@
     {"query": "review my branch for possible bugs before merging", "should_trigger": false},
     {"query": "add a ticket for the crash on export, I'll look at it next week", "should_trigger": false},
     {"query": "plan the refactor of the parser", "should_trigger": false},
-    {"query": "what does a bug bounty program usually pay?", "should_trigger": false}
+    {"query": "what does a bug bounty program usually pay?", "should_trigger": false},
+    {"query": "fix the typo 'recieved' in the upload error message", "should_trigger": false}
   ]
 }

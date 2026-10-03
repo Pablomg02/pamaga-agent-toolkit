@@ -1,6 +1,6 @@
 ---
 name: implement-plan
-description: Implement an existing plan folder by coordinating subagents - one brief per task with scope and acceptance criteria, an independent verifier that checks the real files and tests against the plan, and bounded retries. Requires a plan created with make-plan; without one it stops. Use when the user says "implement plan 0042", "execute the plan", "start working on the plan", or wants to resume a plan that is in progress.
+description: Execute an existing plan folder as a coordinator - briefs implementer subagents (short related tasks grouped together, at most three in parallel), has an independent verifier check the real files and tests against the acceptance criteria, retries at most twice, and keeps the plan's ledger up to date. Use when the user says "implement plan 0042", "execute the plan", "start working on the plan" or wants to resume a plan in progress. Requires a plan folder; without one it stops and suggests make-plan.
 ---
 
 # Implement a plan
@@ -52,21 +52,16 @@ session.
 If the plan is fundamentally underspecified (most tasks fail the check),
 recommend going back to `make-plan` instead of patching it here.
 
-Also ask how to handle git, unless the plan already says:
+Also ask how to handle git, in the same batch, unless the plan already says:
 
 | Option | Behaviour |
 | --- | --- |
 | No commits | Leave all changes uncommitted for the user. |
 | Commit per task | One commit per verified task on the current branch. |
-| Branch + commit per task | Create `plan/<id>-<slug>` first, then one commit per verified task. |
-| Worktree + commit per task | Follow the `concurrent-work` skill with slug `plan-<id>`: own branch and folder, one commit per verified task. Recommend it when that skill's board shows other agents working. |
 
-Never push. Record the choice in *Implementation* as `Git policy: ...`. With
-the worktree option, every verified task is a `concurrent-work` checkpoint
-(ping, check the board, rebase if the base moved).
-
-If you edited `plan.md` and the folder has a `plan.html`, follow the generated
-page rule in `plans-convention`.
+Work on the branch and folder the user is on: do not create or switch
+branches, and never push. Record the choice in *Implementation* as
+`Git policy: ...`.
 
 ## 3. Prepare
 
@@ -76,38 +71,50 @@ page rule in `plans-convention`.
 3. Record a baseline: run the test suite once and note what already fails, so
    pre-existing failures are not blamed on the plan.
 4. Start the ledger in *Implementation* (format below).
-5. Order the tasks by their dependencies. Tasks may run in parallel only when
-   they are independent *and* touch disjoint files; when in doubt, run them
-   in sequence.
+5. Group the tasks into units and waves, and write the grouping in the
+   ledger:
+   - **Unit**: what one implementer gets. Usually one task. Short related
+     tasks (a few lines in one or two files, mechanical edits, the same
+     change in several places) go together in one unit, so small work does
+     not cost a subagent pair per task. Keep a unit small enough to verify in
+     one pass.
+   - **Wave**: units that run at the same time. Up to **three** units that do
+     not depend on each other and touch disjoint files; when in doubt, one
+     unit per wave. Implementers share one working folder, so more of them
+     at once means more chances of stepping on each other's files, builds
+     and test runs.
 
-## 4. Task loop
+## 4. Wave loop
 
-For each task:
+For each wave, in dependency order:
 
-1. **Brief.** Fill `references/implementer-brief.md`: objective, scope and
-   paths, acceptance criteria and decisions copied verbatim, the interfaces
-   earlier tasks produced, project commands, and the report format. Several
-   identical small edits across files go in a single brief.
-2. **Implement.** Launch one implementer subagent with the brief.
-3. **Handle the report.**
+1. **Brief.** Fill `references/implementer-brief.md` for each unit:
+   objective, scope and paths, acceptance criteria and decisions copied
+   verbatim, the interfaces earlier tasks produced, project commands, and the
+   report format.
+2. **Implement.** Launch the wave's implementers in parallel (at most three)
+   and wait for all of them before going on.
+3. **Handle the reports.**
    - `DONE` / `DONE_WITH_CONCERNS`: go to verification; keep the concerns.
    - `NEEDS_DECISION`: ask the user, record the answer in *Decisions*, and
      re-brief. This does not count as a retry.
    - `BLOCKED`: work out why. Missing context → re-brief with it. A flaw in
      the plan → stop and ask the user how to amend the plan; record the
      amendment as a deviation.
-4. **Verify.** Launch a fresh verifier subagent with
-   `references/verifier.md`. Give it the criteria, the expected files, how to
-   see the diff, the baseline, and the implementer's claims as things to
-   check. Never skip verification, and never accept the implementer's report
-   as proof.
-5. **Retry if needed.** On `FAIL`, re-brief the implementer with the
-   verifier's *Findings for a retry* verbatim, then verify again. At most two
-   retries per task (three attempts in total). If it still fails, stop the
-   loop and go to step 6.
-6. **Record.** Update the ledger line for the task. If the git policy says
-   so, commit the task's changes with a message that names the plan and task
-   (`0042 T3: add token refresh`).
+4. **Verify.** Launch one fresh verifier for the whole wave with
+   `references/verifier.md`. Give it each unit's criteria, expected files and
+   implementer claims (as things to check), how to see the changes, the
+   baseline, and the files earlier waves changed, so it does not mistake
+   their work for this wave's. Never skip verification, and never accept an
+   implementer's report as proof.
+5. **Retry if needed.** For each unit with `FAIL`, re-brief its implementer
+   with the verifier's findings for that unit verbatim, then verify the
+   retried units again with one fresh verifier. At most two retries per unit
+   (three attempts in total). If a unit still fails, stop and go to step 6.
+6. **Record.** Update the ledger line of each task. If the git policy says
+   so, commit each unit separately with a message that names the plan and
+   its tasks (`0042 T1: add search index`, `0042 T3+T4: rename config
+   keys`).
 
 ## 5. Final verification
 
@@ -122,10 +129,10 @@ the acceptance criteria do not cover.
 
 ## 6. Stop when it does not converge
 
-When a task exhausts its retries, or something outside the plan blocks the
+When a unit exhausts its retries, or something outside the plan blocks the
 work, stop and report to the user:
 
-- which task, what was attempted, and the verifier's latest findings;
+- which unit and tasks, what was attempted, and the verifier's latest findings;
 - what you think the cause is (plan flaw, missing information, environment);
 - the options: amend the plan, give more context, take over manually, or
   abandon.
@@ -151,13 +158,15 @@ The ledger lives in the plan's *Implementation* section. It survives context
 compaction and new sessions, so update it after every task, not at the end.
 
 ```markdown
-Git policy: commit per task (branch plan/0042-add-search)
+Git policy: commit per task
 Baseline (2026-10-03): 2 failing tests — test_legacy_export, test_flaky_io
+Waves: 1 = T1, T2 · 2 = T3+T4 (one unit) · 3 = T5
 
 - [x] T1 — add search index — verified, 1 attempt — commit 3f2a91c
-- [x] T2 — query parser — verified, 2 attempts (first failed: empty query crashed)
-- [ ] T3 — API endpoint — in progress, attempt 1
-- [ ] T4 — UI — pending
+- [x] T2 — query parser — verified, 2 attempts (first failed: empty query crashed) — commit 8be01d4
+- [ ] T3 — rename config keys — in progress, attempt 1
+- [ ] T4 — update config docs — in progress, attempt 1
+- [ ] T5 — UI — pending
 
 Deviations:
 - T2: also changed `src/util/text.py` (normalise accents); approved by user 2026-10-03.
@@ -180,5 +189,6 @@ commands instead of relying on what you remember writing.
 - Writing or fixing code yourself instead of re-briefing the implementer.
 - Marking a task done from the implementer's report without a verifier PASS.
 - A clarification that is in the conversation but not in `plan.md`.
+- More than three implementers at once, or parallel units that share files.
 - Retrying a third time, or relaxing a criterion so it passes.
-- Committing when the git policy says not to, or pushing at all.
+- Committing when the git policy says not to, creating branches, or pushing.

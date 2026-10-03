@@ -7,6 +7,8 @@ import importlib.util
 import sys
 import io
 import os
+import shutil
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -339,6 +341,61 @@ class PageTest(PlansTestCase):
         code, out, _ = self.run_cli("stamp-page", "1")
         self.assertEqual(code, 0, out)
         self.assertEqual(self.run_cli("page-status", "1")[1], "fresh")
+
+
+GIT_ENV = {
+    "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+    "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com",
+}
+
+
+@unittest.skipUnless(shutil.which("git"), "git not installed")
+class IdsAcrossBranchesTest(unittest.TestCase):
+    """Parallel work on other branches or worktrees must not reuse ids."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmp.name).resolve() / "repo"
+        self.root.mkdir()
+        self.git("init", "-q", "-b", "main")
+        self.git("commit", "-q", "--allow-empty", "-m", "init")
+        self.plans_dir = self.root / "plans"
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def git(self, *args: str, cwd: Path | None = None) -> None:
+        env = {**os.environ, **GIT_ENV}
+        subprocess.run(["git", *args], cwd=cwd or self.root, env=env, check=True,
+                       capture_output=True)
+
+    def cli(self, *args: str, plans_dir: Path | None = None) -> tuple[int, str]:
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = plans.main(["--plans-dir", str(plans_dir or self.plans_dir), *args])
+        return code, out.getvalue().strip()
+
+    def test_next_id_sees_other_branches_and_worktrees(self) -> None:
+        self.git("checkout", "-q", "-b", "feature")
+        self.cli("new", "--title", "On feature")  # 0001, committed on feature
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "plan")
+        self.git("checkout", "-q", "main")
+        self.assertEqual(self.cli("next-id"), (0, "0002"))
+
+        other = self.root.parent / "other"
+        self.git("worktree", "add", "-q", "-b", "side", str(other), "main")
+        self.cli("new", "--title", "In worktree", plans_dir=other / "plans")  # 0002, uncommitted
+        self.assertEqual(self.cli("next-id"), (0, "0003"))
+        self.assertEqual(self.cli("new", "--title", "Here")[1],
+                         str(self.plans_dir / "backlog" / "0003-here"))
+
+        code, out = self.cli("check-id", "2")
+        self.assertEqual(code, 1)
+        self.assertIn(f"worktree {other}", out)
+        code, out = self.cli("check-id", "1")
+        self.assertEqual(code, 1)
+        self.assertIn("branch feature", out)
 
 
 class DefaultPlansDirTest(unittest.TestCase):

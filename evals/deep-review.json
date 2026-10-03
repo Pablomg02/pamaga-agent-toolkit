@@ -4,11 +4,11 @@
     {
       "id": 1,
       "prompt": "Review my changes.",
-      "expected_output": "The agent detects the uncommitted and branch changes, asks which theme groups to review with a recommended selection (and confirms the detected scope), runs one reviewer per selected theme in parallel, validates findings with separate validators, and reports only confirmed or plausible findings ordered by severity.",
+      "expected_output": "The agent detects the uncommitted and branch changes, lets the user pick individual themes in a two-question poll with recommended ones marked (and confirms the detected scope), runs one reviewer per selected theme in parallel, validates findings with separate validators, and reports only confirmed or plausible findings ordered by severity.",
       "files": [],
       "expectations": [
         "Detects the scope and offers it as the recommended option with its size",
-        "Asks which themes to review, offering the groups and a recommendation",
+        "Asks which themes to review with a poll of individual themes (two multiple-choice questions), recommended ones marked",
         "Launches one reviewer per selected theme, each with only its theme",
         "Validates findings with validators that did not produce them",
         "Rejected findings do not appear in the report",

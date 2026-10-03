@@ -12,11 +12,12 @@
         "Asks for the git policy and records it in Implementation",
         "Moves the folder to in-progress with plans.py",
         "Records a baseline of failing tests before the first task",
-        "Each task gets a brief with objective, scope, verbatim criteria and report format",
+        "Each unit gets a brief with objective, scope, verbatim criteria and report format",
         "A separate verifier checks real files and runs tests; the implementer report is not accepted as proof",
         "No more than two retries per task",
         "The ledger in plan.md is updated after each task",
-        "Never pushes"
+        "Never pushes",
+        "Does not create or switch branches"
       ]
     },
     {
@@ -39,6 +40,20 @@
         "Reads the Implementation ledger",
         "Verifies the repository state against the ledger before continuing",
         "Does not redo tasks already verified"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Implement plan 0011.",
+      "expected_output": "The plan has eight tasks: three independent ones on disjoint files and five one-line renames of the same config key. The coordinator groups the renames into one unit, runs at most three implementers at once, verifies each wave with one verifier that is told which files earlier waves changed, and records the waves in the ledger.",
+      "files": [],
+      "expectations": [
+        "Groups the short related renames into a single implementer unit",
+        "Never runs more than three implementers at the same time",
+        "Does not run in parallel units that touch the same files",
+        "Launches one verifier per wave, not one per task",
+        "Tells the verifier which files earlier waves changed",
+        "Writes the waves in the Implementation ledger"
       ]
     }
   ],

@@ -93,6 +93,10 @@ not into Claude Code, where wrappers would collide with the skill's own
 
 ## Agents
 
+There are none yet: skills keep their subagent prompts as briefs (see above).
+If a standalone agent is ever added (only opencode and Claude Code support
+the Markdown agent format):
+
 - One file per agent: `agents/<name>.md`; the body is the agent's prompt.
 - Frontmatter keeps the common minimum: `name` and `description`. Claude Code
   requires `name` or it skips the file; opencode accepts it.
@@ -102,11 +106,6 @@ not into Claude Code, where wrappers would collide with the skill's own
   variants.
 - `mode: subagent` is opencode-only and ignored by Claude Code; it is safe to
   include.
-
-## Subagents
-
-Only opencode and Claude Code support the Markdown subagent format, so skills
-that orchestrate subagents target those two harnesses.
 
 ## Evals
 

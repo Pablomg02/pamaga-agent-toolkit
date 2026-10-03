@@ -1,6 +1,6 @@
 ---
 name: concurrent-work
-description: How to modify a repository when other agents or sessions may be working on it at the same time - check a shared board of who is doing what, work on your own branch in your own git worktree, signal progress, integrate early, and clean up when done. Use before starting any task that changes files in a repository, and whenever the user mentions parallel agents, several sessions, worktrees, or work colliding.
+description: Opt-in isolation for agents working on the same repository at once - each one works on its own branch in its own git worktree and registers on a shared board (.git/agent-work/) that shows who is doing what, flags overlapping paths and stale sessions, and integrates early. Use only when the user explicitly asks for it - mentions several agents or sessions working on the repository at the same time, asks to work in a separate worktree or isolated branch, asks who else is working here, or names this skill. Not for ordinary edits, even large ones.
 ---
 
 # Concurrent work
@@ -9,6 +9,9 @@ Several agents can work on the same repository at once if each one stays on
 its own branch, in its own folder (a git worktree), and they can see each
 other. The board makes them visible: one short note per agent in
 `.git/agent-work/`, shared by every worktree and never committed.
+
+This skill is opt-in: use it only when the user asked for it. Ordinary work
+happens in the user's folder and branch, with no board, branch or worktree.
 
 The risk with separate branches is drifting apart for hours and colliding at
 merge time. The rules below keep everyone visible and integrate early, so a
@@ -89,14 +92,3 @@ install them in the worktree before running anything.
 
 If the work is abandoned, ask the user before `end <slug> --force`, which
 discards uncommitted changes and the unmerged branch.
-
-## Making sure it is used
-
-A skill is only loaded when the agent thinks it is relevant, and "fix this
-bug" does not sound like coordination. If you run agents in parallel often,
-add this line to your global instructions (`~/.claude/CLAUDE.md` for Claude
-Code, `~/.config/opencode/AGENTS.md` for opencode):
-
-```markdown
-Before modifying files in a git repository, follow the `concurrent-work` skill.
-```

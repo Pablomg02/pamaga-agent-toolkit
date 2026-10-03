@@ -42,7 +42,7 @@ These skills share one convention: every piece of work is a folder under
 | `plans-convention` | Defines the `plans/` layout and `plan.md` format, with a script for ids, moves and validation. Loaded by the others. |
 | `make-roadmap` | Writes a long-term over-plan: milestones, ordering, and the plans that should derive from it. |
 | `make-plan` | Investigates with helper subagents, asks until nothing is ambiguous, writes the plan, and has two independent critics challenge it. |
-| `implement-plan` | Coordinates one implementer subagent per task and an independent verifier that checks the real result, with bounded retries. |
+| `implement-plan` | Coordinates implementer subagents (short tasks grouped, at most three in parallel) and an independent verifier per wave that checks the real result, with bounded retries. Works on your current branch. |
 | `new-ticket` | Captures a bug, idea or follow-up in the backlog in a minute. |
 | `plan-page` | Generates a self-contained HTML page that explains a plan, stored in its folder. |
 
@@ -63,7 +63,7 @@ idea ──► make-roadmap ──► make-plan ──► implement-plan ──�
 
 | Skill | What it does |
 | --- | --- |
-| `concurrent-work` | Several agents on one repository: each works on its own branch and git worktree, and a shared board (`.git/agent-work/`) shows who is doing what, flags overlapping paths and stale sessions, and keeps branches integrating early. |
+| `concurrent-work` | Opt-in, only when you ask for it. Several agents on one repository: each works on its own branch and git worktree, and a shared board (`.git/agent-work/`) shows who is doing what, flags overlapping paths and stale sessions, and keeps branches integrating early. |
 
 In Claude Code every skill is also a slash command (`/make-plan`); in
 opencode the wrappers in `commands/` provide the same.

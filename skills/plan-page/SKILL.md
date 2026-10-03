@@ -1,6 +1,6 @@
 ---
 name: plan-page
-description: Generate a self-contained HTML page (single file, inline CSS, no external dependencies) that explains a plan, roadmap or ticket folder to a reader - why, approach, decisions, execution order, tasks, acceptance criteria, risks and progress - using a fixed house style, and save it as plan.html inside the plan folder. Use only when the user asks for an explanatory page, web page, HTML or visual summary of a plan, or to regenerate an outdated one.
+description: Generate plan.html, a self-contained explainer page (one HTML file, fixed house style, no external resources) for a plan, roadmap or ticket folder - why, approach, decisions, execution order, tasks, acceptance criteria, risks and progress. Use only when the user explicitly asks for a page, web page, HTML or visual summary of a plan, or to regenerate an outdated one. Never as a side effect of planning or implementing.
 ---
 
 # Plan explainer page

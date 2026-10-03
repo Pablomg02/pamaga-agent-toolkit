@@ -18,7 +18,7 @@
     },
     {
       "id": 2,
-      "prompt": "Change the login form validation.",
+      "prompt": "Change the login form validation. Other agents are working on this repo too, so use the board.",
       "expected_output": "work.py start reports an overlap with another agent's src/auth/** note; the agent stops, tells the user who is working on what, and asks whether to wait, narrow paths, or proceed with --allow-overlap.",
       "files": [],
       "expectations": [
@@ -46,6 +46,8 @@
     {"query": "explain what git worktrees are", "should_trigger": false},
     {"query": "merge the feature branch into main", "should_trigger": false},
     {"query": "make my Python code run concurrently with asyncio", "should_trigger": false},
-    {"query": "review the changes on this branch", "should_trigger": false}
+    {"query": "review the changes on this branch", "should_trigger": false},
+    {"query": "fix the crash when exporting an empty list", "should_trigger": false},
+    {"query": "refactor the whole auth module to use the new session API", "should_trigger": false}
   ]
 }

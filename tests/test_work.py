@@ -149,6 +149,16 @@ class WorkflowTest(unittest.TestCase):
         code, _, err = self.run_cli("start", "ok", "--task", "x", "--paths", " , ")
         self.assertIn("--paths needs at least one path", err)
 
+    def test_detached_head_needs_explicit_base(self) -> None:
+        self.git("checkout", "-q", "--detach")
+        code, _, err = self.run_cli("start", "fix", "--task", "x", "--paths", "src/**")
+        self.assertEqual(code, 1)
+        self.assertIn("--base", err)
+        self.assertFalse((self.main / ".git" / "agent-work" / "fix.md").exists())
+        worktree = self.start("fix", "src/**", "--base", "main")
+        self.assertEqual(work.read_note(self.main / ".git" / "agent-work" / "fix.md")["base"], "main")
+        self.assertTrue(worktree.is_dir())
+
     def test_failed_worktree_removes_note(self) -> None:
         self.git("branch", "work/taken")
         code, _, err = self.run_cli("start", "taken", "--task", "x", "--paths", "a/**")

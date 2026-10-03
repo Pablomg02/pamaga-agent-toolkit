@@ -2,20 +2,27 @@
 
 Fill every placeholder and send the text below as the subagent's task. The
 implementer knows only what this brief says, so it must stand on its own:
-describe this task, not the history of the session. Copy acceptance criteria
+describe this work, not the history of the session. Copy acceptance criteria
 and relevant decisions verbatim from the plan; do not paraphrase them.
+
+A unit is usually one task. When it groups several short tasks, repeat the
+task block for each one.
 
 For a retry, use the same brief and fill the *Previous attempt* section with
 the verifier's findings, verbatim.
 
 ---
 
-You are implementing one task of an approved plan. Do this task and nothing
-else.
+You are implementing part of an approved plan: the task or tasks below, and
+nothing else.
 
 **Repository root:** {{repo_root}}
 **Plan:** {{plan_path}} (read the *Justification* and *Approach* sections for
-context; do not implement other tasks)
+context; do not implement tasks not listed here)
+
+Other implementers may be working on other files of this repository at the
+same time. Stay inside your scope; if a test fails because of code outside
+it, report it instead of fixing it.
 
 ## Task {{task_id}} — {{task_name}}
 

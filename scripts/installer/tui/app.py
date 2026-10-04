@@ -25,7 +25,16 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
-from installer.actions import Action, Result, Selection, plan_actions, shared_skill_losses, shared_source
+from installer.actions import (
+    Action,
+    Result,
+    Selection,
+    describe_sharing,
+    plan_actions,
+    shared_skill_losses,
+    shared_source,
+    sharing_notes,
+)
 from installer.catalog import STAGE_ORDER, Catalog, Item
 from installer.harnesses import Harness
 from installer.state import Installed, Status
@@ -1205,17 +1214,9 @@ class App:
                 counts[action.op] = counts.get(action.op, 0) + 1
             summary = ", ".join(f"{n} to {op}" for op, n in sorted(counts.items()))
             lines.append(style.bold(f"{len(changes)} change(s): ") + summary)
-        for harness in self._selected_harnesses():
-            via: Dict[str, int] = {}
-            for name in self._wanted():
-                provider = self._via(harness, name, planned=True)
-                if provider is not None:
-                    via[provider] = via.get(provider, 0) + 1
-            for provider, count in via.items():
-                source = next(h for h in self.harnesses if h.id == provider)
-                lines.append(style.fg(f"{harness.label} reads {count} skill(s) from "
-                                      f"{source.dir_for('skill')}, so they are not copied "
-                                      "again (no duplicates).", THEME["muted"]))
+        for note in sharing_notes(self.harnesses, self.scans, self._selection(), self._wanted()):
+            colour = THEME["muted"] if note.shared else THEME["check"]
+            lines.append(style.fg(describe_sharing(note, self.harnesses), colour))
         for harness_id, name, provider in shared_skill_losses(self.harnesses, self.scans, self.actions):
             lines.append(style.fg(f"{self._label_of(harness_id)} read {name} from "
                                   f"{self._label_of(provider)} and will no longer see it.",

@@ -5,7 +5,7 @@
 # 🐒 PAMAGA AGENT TOOLKIT
 
 My personal collection of **agent skills, subagents and commands** for opencode,
-Claude Code and Antigravity CLI (`agy`), which I use to build my software tools
+Claude Code, Antigravity CLI (`agy`) and [Grok CLI](https://x.ai/cli), which I use to build my software tools
 and experiments. It exists so that **I stay in control of the development**: I
 can understand what is going on, keep learning along the way, and remain **the
 owner of the project**.
@@ -20,7 +20,8 @@ owner of the project**.
 ## Quick install
 
 You need a coding agent ([Claude Code](https://claude.com/claude-code),
-[opencode](https://opencode.ai) or [Antigravity CLI](https://antigravity.google)),
+[opencode](https://opencode.ai), [Antigravity CLI](https://antigravity.google)
+or [Grok CLI](https://x.ai/cli)),
 Python 3.9+ and [Git](https://git-scm.com).
 
 **Linux or macOS**

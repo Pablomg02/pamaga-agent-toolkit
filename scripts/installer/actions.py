@@ -115,6 +115,69 @@ def plan_actions(
     return actions
 
 
+@dataclass(frozen=True)
+class SharingNote:
+    """Why a harness's skills are, or are not, copied into its own dir."""
+
+    harness_id: str
+    provider_id: str
+    count: int
+    shared: bool      # True: read from the provider's dir, not copied
+    reason: str = ""  # when not shared: the setting that turned it off
+
+
+def sharing_notes(
+    harnesses: Iterable[Harness],
+    scans: Mapping[str, Mapping[str, Installed]],
+    selection: Selection,
+    wanted: set[str],
+) -> list[SharingNote]:
+    """One note per selected harness and provider, when that question is real.
+
+    A shared note counts wanted skills the harness reads from that provider.
+    A not-shared note counts wanted skills the provider would have supplied
+    had a setting not stopped the harness reading its dir. Counts of zero
+    are left out.
+    """
+    notes: list[SharingNote] = []
+    for harness in harnesses:
+        if harness.id not in selection.harness_ids:
+            continue
+        for provider in harness.skills_from:
+            count = sum(
+                shared_source(harness, name, scans, selection.harness_ids) == provider
+                for name in wanted
+            )
+            if count:
+                notes.append(SharingNote(harness.id, provider, count, True))
+        for provider, reason in harness.skills_from_disabled:
+            count = sum(
+                provider in selection.harness_ids or _on_disk(scans, provider, name)
+                for name in wanted
+            )
+            if count:
+                notes.append(SharingNote(harness.id, provider, count, False, reason))
+    return notes
+
+
+def describe_sharing(note: SharingNote, harnesses: Iterable[Harness]) -> str:
+    """The one sentence the CLI and the TUI show for a sharing note."""
+    by_id = {harness.id: harness for harness in harnesses}
+    harness = by_id[note.harness_id]
+    provider = by_id[note.provider_id]
+    own = harness.dir_for("skill")
+    source = provider.dir_for("skill")
+    if note.shared:
+        return (
+            f"{harness.label}: {note.count} skill(s) not copied to {own}; "
+            f"it already reads them from {source} ({provider.label})."
+        )
+    return (
+        f"{harness.label}: {note.count} skill(s) copied to {own}; "
+        f"it does not read {source} ({note.reason})."
+    )
+
+
 def shared_source(
     harness: Harness,
     name: str,

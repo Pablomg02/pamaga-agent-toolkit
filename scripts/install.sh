@@ -9,6 +9,7 @@ PYTHON="${PAMAGA_PYTHON:-python3}"
 OPENCODE_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 CLAUDE_DIR="$HOME/.claude"
 ANTIGRAVITY_DIR="$HOME/.gemini/config"
+GROK_DIR="${GROK_HOME:-$HOME/.grok}"
 
 usage() {
   cat <<EOF
@@ -18,6 +19,7 @@ Targets:
   opencode     Skills, agents and command wrappers for opencode (default)
   claude       Skills and agents for Claude Code (skills are already /commands)
   antigravity  Skills for Antigravity CLI (skills are already /commands)
+  grok         Skills and agents for Grok CLI (skills are already /commands)
   all          All of the above
 
 Options:
@@ -28,8 +30,9 @@ Locations:
   opencode       ${OPENCODE_DIR}/{skills,agents,commands}
   Claude Code    ${CLAUDE_DIR}/{skills,agents}
   Antigravity    ${ANTIGRAVITY_DIR}/skills
-  (opencode also reads ${CLAUDE_DIR}/skills: skills already there, or
-  installed there in the same run, are not copied into its own folder)
+  Grok CLI       ${GROK_DIR}/{skills,agents}
+  (opencode and Grok CLI both read ${CLAUDE_DIR}/skills: skills already there, or
+  installed there in the same run, are not copied into their own folder)
 EOF
 }
 
@@ -42,7 +45,7 @@ TARGET="opencode"
 UNINSTALL=0
 for arg in "$@"; do
   case "$arg" in
-    opencode|claude|antigravity|all) TARGET="$arg" ;;
+    opencode|claude|antigravity|grok|all) TARGET="$arg" ;;
     --uninstall) UNINSTALL=1 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown argument: $arg" >&2; usage; exit 1 ;;
@@ -58,7 +61,8 @@ case "$TARGET" in
   opencode) HARNESSES="opencode" ;;
   claude) HARNESSES="claude" ;;
   antigravity) HARNESSES="antigravity" ;;
-  all) HARNESSES="opencode,claude,antigravity" ;;
+  grok) HARNESSES="grok" ;;
+  all) HARNESSES="opencode,claude,antigravity,grok" ;;
 esac
 
 if [ "$UNINSTALL" -eq 1 ]; then

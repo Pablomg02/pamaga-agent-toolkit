@@ -20,6 +20,17 @@ from pathlib import Path
 from typing import Mapping
 
 DIR_NAMES = {"skill": "skills", "agent": "agents", "command": "commands"}
+_OFF_VALUES = {"false", "0", "no", "off"}
+
+
+@dataclass(frozen=True)
+class CompatSwitch:
+    """A harness setting that can stop it reading another harness's skills dir."""
+
+    env: str      # environment variable; set and false-like turns it off
+    config: str   # config file, relative to the harness's user base
+    table: str    # TOML table holding the key, e.g. "compat.claude"
+    key: str      # boolean key in that table, e.g. "skills"
 
 
 @dataclass(frozen=True)
@@ -34,6 +45,8 @@ class Harness:
     restart_hint: str
     # ids of harnesses whose skills dir this one also reads at this scope
     skills_from: tuple[str, ...] = ()
+    # (provider id, reason) for providers dropped because a setting turned them off
+    skills_from_disabled: tuple[tuple[str, str], ...] = ()
     # False when the harness expects another agent layout than agents/<name>.md
     supports_agents: bool = True
 
@@ -62,10 +75,14 @@ class HarnessSpec:
     user_root: str  # "xdg" (XDG_CONFIG_HOME, fallback ~/.config) or "home"
     user_dir: str
     project_dir: str
+    # Environment variable that, when set, replaces the whole user base.
+    user_env: str | None = None
     skills_from: tuple[str, ...] = ()  # ids whose skills dir the harness reads (user scope)
     # Like skills_from but for project scope; None means "same as skills_from".
     project_skills_from: tuple[str, ...] | None = None
     supports_agents: bool = True
+    # (provider id, switch) for providers a setting can stop this harness reading
+    skills_from_switches: tuple[tuple[str, CompatSwitch], ...] = ()
 
 
 HARNESS_SPECS: tuple[HarnessSpec, ...] = (
@@ -108,6 +125,30 @@ HARNESS_SPECS: tuple[HarnessSpec, ...] = (
         # Its agents are agents/<name>/agent.md, not agents/<name>.md.
         supports_agents=False,
     ),
+    HarnessSpec(
+        id="grok",
+        label="Grok CLI",
+        binary="grok",
+        supports_commands=False,
+        restart_hint="Grok CLI reloads skills on its own; restart it if a change does not show up.",
+        user_root="home",
+        user_dir=".grok",
+        project_dir=".grok",
+        user_env="GROK_HOME",
+        # Grok reads Claude's skills dir (and, in a project, the Antigravity
+        # .agents dir) unless Claude compatibility for skills is off.
+        # See docs/INSTALL.md.
+        skills_from=("claude",),
+        project_skills_from=("claude", "antigravity"),
+        skills_from_switches=(
+            ("claude", CompatSwitch(
+                env="GROK_CLAUDE_SKILLS_ENABLED",
+                config="config.toml",
+                table="compat.claude",
+                key="skills",
+            )),
+        ),
+    ),
 )
 
 
@@ -119,16 +160,24 @@ def all_harnesses(
     """Every known harness with its base directory resolved for `scope`.
 
     User scope reads HOME and XDG_CONFIG_HOME from `env` (default
-    `os.environ`), falling back to USERPROFILE and `~/.config`; project
-    scope resolves under `project`, defaulting to the current directory.
+    `os.environ`), falling back to USERPROFILE and `~/.config`; a harness
+    with a `user_env` (Grok's GROK_HOME) uses that variable instead when it
+    is set. Project scope resolves under `project`, defaulting to the
+    current directory.
     """
     env = os.environ if env is None else env
+    home = _home(env)
+    xdg = env.get("XDG_CONFIG_HOME")
+    roots = {"home": home, "xdg": Path(xdg) if xdg else home / ".config"}
+    # The user base also holds a harness's config, read at both scopes.
+    user_bases = {spec.id: _user_base(spec, roots, env) for spec in HARNESS_SPECS}
     if scope == "user":
-        home = _home(env)
-        xdg = env.get("XDG_CONFIG_HOME")
-        roots = {"home": home, "xdg": Path(xdg) if xdg else home / ".config"}
         return [
-            _build(spec, roots[spec.user_root] / spec.user_dir, spec.skills_from)
+            _build(
+                spec,
+                user_bases[spec.id],
+                *_reachable(spec, spec.skills_from, env, user_bases[spec.id]),
+            )
             for spec in HARNESS_SPECS
         ]
     if scope == "project":
@@ -137,7 +186,12 @@ def all_harnesses(
             _build(
                 spec,
                 root / spec.project_dir,
-                spec.skills_from if spec.project_skills_from is None else spec.project_skills_from,
+                *_reachable(
+                    spec,
+                    spec.skills_from if spec.project_skills_from is None else spec.project_skills_from,
+                    env,
+                    user_bases[spec.id],
+                ),
             )
             for spec in HARNESS_SPECS
         ]
@@ -149,7 +203,102 @@ def _home(env: Mapping[str, str]) -> Path:
     return Path(value) if value else Path.home()
 
 
-def _build(spec: HarnessSpec, base: Path, skills_from: tuple[str, ...]) -> Harness:
+def _user_base(spec: HarnessSpec, roots: Mapping[str, Path], env: Mapping[str, str]) -> Path:
+    """User-scope base of `spec`: its own env override when set, else root plus dir."""
+    override = env.get(spec.user_env) if spec.user_env else None
+    return Path(override) if override else roots[spec.user_root] / spec.user_dir
+
+
+def _reachable(
+    spec: HarnessSpec,
+    providers: tuple[str, ...],
+    env: Mapping[str, str],
+    user_base: Path,
+) -> tuple[tuple[str, ...], tuple[tuple[str, str], ...]]:
+    """Split `providers` into those still read and those a switch turned off.
+
+    Order of each tuple follows `providers`. A provider with no switch, or
+    whose switch is on, stays reachable.
+    """
+    switches = {provider: switch for provider, switch in spec.skills_from_switches}
+    kept: list[str] = []
+    disabled: list[tuple[str, str]] = []
+    for provider in providers:
+        switch = switches.get(provider)
+        reason = None if switch is None else _switch_off_reason(switch, env, user_base)
+        if reason is None:
+            kept.append(provider)
+        else:
+            disabled.append((provider, reason))
+    return tuple(kept), tuple(disabled)
+
+
+def _switch_off_reason(switch: CompatSwitch, env: Mapping[str, str], user_base: Path) -> str | None:
+    """Why `switch` is off, or None when the harness still reads that dir.
+
+    A non-empty environment variable decides alone. Otherwise a `false` value
+    in the config file turns it off. A missing, unreadable or silent file
+    leaves it on.
+    """
+    raw = env.get(switch.env)
+    if raw:
+        if raw.strip().lower() in _OFF_VALUES:
+            return f"{switch.env}={raw}"
+        return None
+    path = user_base / switch.config
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    if _toml_bool(text, switch.table, switch.key) is False:
+        return f"{switch.table}.{switch.key} = false in {path}"
+    return None
+
+
+def _dotted(text: str) -> tuple[str, ...]:
+    """Split a TOML dotted name, ignoring spaces around the dots."""
+    return tuple(part.strip() for part in text.split("."))
+
+
+def _toml_bool(text: str, table: str, key: str) -> bool | None:
+    """First `true` or `false` written for `table.key`, else None.
+
+    Understands `key = <bool>` under `[table]`, a dotted key under a parent
+    table, and the full dotted key before any table. `#` comments are
+    stripped. Quoted keys and inline tables are not a match.
+    """
+    target = _dotted(f"{table}.{key}")
+    current: tuple[str, ...] = ()
+    seen_table = False
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            seen_table = True
+            current = _dotted(line[1:-1].strip())
+            continue
+        if "=" not in line:
+            continue
+        left, right = line.split("=", 1)
+        parts = _dotted(left.strip())
+        full = parts if not seen_table else current + parts
+        if full != target:
+            continue
+        value = right.strip()
+        if value == "true":
+            return True
+        if value == "false":
+            return False
+    return None
+
+
+def _build(
+    spec: HarnessSpec,
+    base: Path,
+    skills_from: tuple[str, ...],
+    skills_from_disabled: tuple[tuple[str, str], ...],
+) -> Harness:
     return Harness(
         id=spec.id,
         label=spec.label,
@@ -158,5 +307,6 @@ def _build(spec: HarnessSpec, base: Path, skills_from: tuple[str, ...]) -> Harne
         supports_commands=spec.supports_commands,
         restart_hint=spec.restart_hint,
         skills_from=skills_from,
+        skills_from_disabled=skills_from_disabled,
         supports_agents=spec.supports_agents,
     )

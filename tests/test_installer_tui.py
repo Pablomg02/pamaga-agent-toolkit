@@ -23,7 +23,7 @@ from installer.versions import ItemVersion, ToolkitVersion
 
 
 class World:
-    """A fake installer world: two harnesses, injectable scan/apply/pull."""
+    """A fake installer world: two harnesses by default, four with use_four_harnesses."""
 
     def __init__(self, base: Path) -> None:
         self.catalog = load_catalog(REPO)
@@ -40,6 +40,14 @@ class World:
         )
         self.opencode.base.mkdir(parents=True, exist_ok=True)
         self.claude.base.mkdir(parents=True, exist_ok=True)
+        self.antigravity = Harness(
+            id="antigravity", label="Antigravity CLI", base=base / "antigravity", binary="agy",
+            supports_commands=False, restart_hint="Restart Antigravity CLI", supports_agents=False,
+        )
+        self.grok = Harness(
+            id="grok", label="Grok CLI", base=base / "grok", binary="grok",
+            supports_commands=False, restart_hint="reload", skills_from=("claude",),
+        )
         self.harnesses = [self.opencode, self.claude]
         self.records: dict = {}
         self.remote = "0.9.1"
@@ -47,6 +55,12 @@ class World:
         self.pull_calls = 0
         self.applied = []
         self.fail_action_names: set = set()
+
+    def use_four_harnesses(self) -> None:
+        """opencode, Claude Code, Antigravity CLI and Grok CLI."""
+        for harness in (self.antigravity, self.grok):
+            harness.base.mkdir(parents=True, exist_ok=True)
+        self.harnesses = [self.opencode, self.claude, self.antigravity, self.grok]
 
     def record(self, harness_id, kind, name, status, mode=None, version=None, changed=(),
                managed=False) -> None:
@@ -147,7 +161,7 @@ class TuiTest(unittest.TestCase):
 
     # -- rendering ---------------------------------------------------------
 
-    def test_every_screen_fits_the_terminal(self) -> None:
+    def _assert_every_screen_fits(self) -> None:
         for style in (Style("none", False), Style("truecolor", True)):
             for screen in ("splash", "harnesses", "components", "details", "review", "install"):
                 app = App(self.world.context(), style)
@@ -169,6 +183,13 @@ class TuiTest(unittest.TestCase):
                             self.assertEqual(len(lines), height)
                             for line in lines:
                                 self.assertLessEqual(display_width(line), width)
+
+    def test_every_screen_fits_the_terminal(self) -> None:
+        self._assert_every_screen_fits()
+
+    def test_every_screen_fits_with_four_harnesses(self) -> None:
+        self.world.use_four_harnesses()
+        self._assert_every_screen_fits()
 
     def test_too_small_terminal_message(self) -> None:
         lines = self.app.render(50, 12)
@@ -282,8 +303,39 @@ class TuiTest(unittest.TestCase):
             self.world.catalog.get("skill", "find-bug"), 80)))
         self.app.handle("enter")
         review = self.text(160, 40)
-        self.assertIn("opencode reads", review)
+        self.assertIn("opencode: ", review)
+        self.assertIn("not copied to", review)
         self.assertFalse(any(a.kind == "skill" and a.name == "find-bug" for a in self.app.actions))
+
+    def test_review_says_grok_does_not_copy_skills_claude_already_has(self) -> None:
+        grok = Harness(
+            id="grok", label="Grok CLI", base=self.world.base / "grok", binary="grok",
+            supports_commands=False, restart_hint="reload", skills_from=("claude",),
+        )
+        grok.base.mkdir(parents=True, exist_ok=True)
+        self.world.harnesses = [self.world.opencode, self.world.claude, grok]
+        self.app = self.fresh()
+        self.app.checked = {"claude", "grok"}
+        self.at_review()
+        review = self.text(160, 40)
+        self.assertIn("Grok CLI: ", review)
+        self.assertIn("not copied to", review)
+
+    def test_grok_components_show_a_claude_skill_via_claude_code(self) -> None:
+        self.world.use_four_harnesses()
+        target = self.world.claude.base / "skills" / "find-bug"
+        target.mkdir(parents=True)
+        self.world.record(
+            "claude", "skill", "find-bug", Status.LINKED, mode="link", version="0.2.0", managed=True,
+        )
+        self.world.records[("claude", "skill/find-bug")] = replace(
+            self.world.records[("claude", "skill/find-bug")], target=target,
+        )
+        self.app = self.fresh()
+        self.app.checked = {"grok"}
+        self.at_components()
+        self.app.cursor = self.row_index("skill", "find-bug")
+        self.assertIn("via Claude Code", self.text(160, 40))
 
     def test_unmarked_hand_made_copy_is_not_shown_as_removed(self) -> None:
         # The plan keeps an identical copy the installer did not make.

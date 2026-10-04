@@ -23,6 +23,7 @@ standard library only.
 | opencode | `~/.config/opencode/skills/<name>/SKILL.md` | `~/.config/opencode/agents/<name>.md` | `~/.config/opencode/commands/<name>.md` |
 | Claude Code | `~/.claude/skills/<name>/SKILL.md` | `~/.claude/agents/<name>.md` | not needed |
 | Antigravity CLI | `~/.gemini/config/skills/<name>/SKILL.md` | not installed (see below) | not needed |
+| Grok CLI | `~/.grok/skills/<name>/SKILL.md` | `~/.grok/agents/<name>.md` | not needed |
 
 Notes:
 
@@ -38,9 +39,31 @@ Notes:
 - In project scope, opencode also reads `.agents/skills/`, the directory
   Antigravity CLI uses: targeting both in a project installs the skills only
   there, again to avoid duplicates.
-- Claude Code and Antigravity CLI register every skill as `/<name>` on their
-  own. Do not install `commands/` there: the wrappers would collide with the
-  skills.
+- Grok CLI reads the same shared dirs: `~/.claude/skills/` at user scope, and
+  `.claude/skills/` and `.agents/skills/` in a project. The installer shares
+  them as it does for opencode, so a skill is not copied into `~/.grok/skills/`
+  (or `.grok/skills/`) when Grok already sees it. `--status` and the TUI show
+  that as "via Claude Code" or "via Antigravity CLI". Grok gets its own copies
+  when no shared dir gives it the skill, or when its Claude compatibility for
+  skills is off: `GROK_CLAUDE_SKILLS_ENABLED=false`, or `skills = false` under
+  `[compat.claude]` in `~/.grok/config.toml`. The same key may also be written
+  `claude.skills = false` under `[compat]`, or `compat.claude.skills = false`
+  before any table; spaces around the dots are ignored. A quoted key or an
+  inline table (`claude = { skills = false }`) is not understood and leaves
+  the switch on: use the environment variable then. Do not install `commands/`
+  for Grok. Each wrapper would become a skill with the same name as the real
+  one. In a project, Grok loads those skills only after the folder is trusted
+  (`grok --trust`, or `/hooks-trust` inside Grok). If `GROK_HOME` is set, the
+  installer uses it in place of `~/.grok`, both for the user install and for
+  `config.toml`.
+- Before it changes anything, the installer prints one line per selected
+  harness and provider when the harness could read that provider's skills.
+  Shared: `Grok CLI: 3 skill(s) not copied to ~/.grok/skills; it already reads them from ~/.claude/skills (Claude Code).`
+  Not shared, because a setting stopped it: `Grok CLI: 3 skill(s) copied to ~/.grok/skills; it does not read ~/.claude/skills (GROK_CLAUDE_SKILLS_ENABLED=false).`
+  opencode uses the same two sentences.
+- Claude Code, Antigravity CLI and Grok CLI register every skill as `/<name>`
+  on their own. Do not install `commands/` there: the wrappers would collide
+  with the skills.
 - Antigravity CLI also reads global skills from
   `~/.gemini/antigravity-cli/skills/` and `~/.gemini/skills/` (the *Shared*
   location, used together with Gemini CLI). The installer uses
@@ -49,9 +72,9 @@ Notes:
 - Antigravity CLI wants each agent as `agents/<name>/agent.md`, not
   `agents/<name>.md`, so the installer gives it skills only. In the manual
   steps below, skip the `agents` line for it.
-- All of them also support project-scoped installs: `.opencode/`, `.claude/`
-  and `.agents/` inside a repository. This guide covers the global (user)
-  scope.
+- All of them also support project-scoped installs: `.opencode/`, `.claude/`,
+  `.agents/` and `.grok/` inside a repository. This guide covers the global
+  (user) scope.
 
 ## Option 1: symlinks (recommended)
 
@@ -60,7 +83,7 @@ your agents use the new content immediately.
 
 ```bash
 REPO="$HOME/GitHub/pamaga-agent-toolkit"
-DEST="$HOME/.config/opencode"   # $HOME/.claude for Claude Code; $HOME/.gemini/config for Antigravity CLI
+DEST="$HOME/.config/opencode"   # $HOME/.claude for Claude Code; $HOME/.gemini/config for Antigravity CLI; $HOME/.grok for Grok CLI
 
 mkdir -p "$DEST"/{skills,agents,commands}
 ln -sfn "$REPO"/skills/*/     "$DEST/skills/"
@@ -77,7 +100,7 @@ Use this if you prefer real files, for example to edit them per machine.
 
 ```bash
 REPO="$HOME/GitHub/pamaga-agent-toolkit"
-DEST="$HOME/.config/opencode"   # $HOME/.claude for Claude Code; $HOME/.gemini/config for Antigravity CLI
+DEST="$HOME/.config/opencode"   # $HOME/.claude for Claude Code; $HOME/.gemini/config for Antigravity CLI; $HOME/.grok for Grok CLI
 
 mkdir -p "$DEST"/{skills,agents,commands}
 cp -R "$REPO"/skills/*/     "$DEST/skills/"
@@ -148,6 +171,11 @@ in `/agents`.
 Restart Antigravity CLI (`agy`) after installing. Skills are model-invoked and
 also registered as `/<name>` commands on their own; run `/skills` inside `agy`
 to see the list.
+
+### Grok CLI
+
+Grok CLI reloads skills when the files change; restart it if a change does not
+show up. Type `/` to list them. `grok inspect` shows where each one comes from.
 
 ## Updating and uninstalling
 

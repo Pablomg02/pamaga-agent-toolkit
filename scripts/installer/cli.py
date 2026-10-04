@@ -29,9 +29,11 @@ from installer.actions import (
     Action,
     Selection,
     apply_actions,
+    describe_sharing,
     plan_actions,
     shared_skill_losses,
     shared_source,
+    sharing_notes,
 )
 from installer.catalog import Catalog, Item, load_catalog
 from installer.harnesses import Harness, all_harnesses
@@ -42,7 +44,7 @@ REPO = Path(__file__).resolve().parents[2]
 
 USAGE = """Usage:
   python3 scripts/install.py                 # TUI when stdin and stdout are TTYs; else help, exit 2
-  python3 scripts/install.py --yes [--harness opencode,claude,antigravity|all] [--skills all|a,b]
+  python3 scripts/install.py --yes [--harness opencode,claude,antigravity,grok|all] [--skills all|a,b]
                            [--agents all|a,b] [--mode link|copy] [--no-commands]
                            [--scope user|project] [--prune] [--force]
   python3 scripts/install.py --update [--pull] [--harness ...] [--mode link|copy] [--force]
@@ -179,6 +181,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     for harness_id, name, provider in shared_skill_losses(everyone, scans, actions):
         print(f"Warning: {_label(everyone, harness_id)} read skill {name} from "
               f"{_label(everyone, provider)} and will no longer see it.")
+    if selection is not None and not args.uninstall:
+        notes = shared_notes(catalog, everyone, harnesses, scans, selection)
+        kept = [a for a in actions
+                if a.kind == "skill" and a.op == "keep" and a.reason.startswith("already read from")]
+        if notes:
+            print()
+            for line in notes:
+                print(line)
+            if kept:
+                print("Older copies in its own skills dir are kept; run with --prune to remove them.")
     sys.stdout.flush()
     results = apply_actions(actions, catalog, harnesses, now=datetime.now().astimezone())
     failed = [result for result in results if not result.ok]
@@ -198,16 +210,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     if args.uninstall:
         return 1 if failed else 0
 
-    if selection is not None:
-        notes = shared_notes(catalog, everyone, harnesses, scans, selection)
-        kept = [a for a in actions
-                if a.kind == "skill" and a.op == "keep" and a.reason.startswith("already read from")]
-        if notes:
-            print()
-            for line in notes:
-                print(line)
-            if kept:
-                print("Older copies in its own skills dir are kept; run with --prune to remove them.")
     changed = [a for a in actions if a.op not in ("keep", "skip")]
     print()
     skipped = sum(1 for a in actions if a.op == "skip")
@@ -311,20 +313,16 @@ def shared_notes(
     scans: Mapping[str, Mapping[str, Installed]],
     selection: Selection,
 ) -> List[str]:
-    """One line per selected harness that gets its skills from another one's dir."""
+    """One line per selected harness and provider, from ``sharing_notes``.
+
+    ``harnesses`` stays in the signature for callers. The notes themselves
+    are built from every harness of the scope.
+    """
     wanted = catalog.required_closure(set(selection.skills))
-    lines = []
-    for harness in harnesses:
-        providers: Dict[str, int] = {}
-        for name in sorted(wanted):
-            provider = shared_source(harness, name, scans, selection.harness_ids)
-            if provider is not None:
-                providers[provider] = providers.get(provider, 0) + 1
-        for provider, count in providers.items():
-            source = next(h for h in everyone if h.id == provider)
-            lines.append(f"Note: {harness.label} reads {count} skill(s) from {source.dir_for('skill')} "
-                         f"({source.label}), so they are not copied to its own dir.")
-    return lines
+    return [
+        describe_sharing(note, everyone)
+        for note in sharing_notes(everyone, scans, selection, wanted)
+    ]
 
 
 def _label(harnesses: Iterable[Harness], harness_id: str) -> str:

@@ -19,7 +19,10 @@ SHIM = REPO / "scripts" / "install.sh"
 
 
 def env_for(home: Path) -> dict:
-    env = {key: value for key, value in os.environ.items() if key not in ("XDG_CONFIG_HOME", "PAMAGA_OFFLINE")}
+    # Variables that move a harness or change what it reads stay out, so the
+    # runner's own setup never leaks into the fake HOME.
+    dropped = ("XDG_CONFIG_HOME", "PAMAGA_OFFLINE", "GROK_HOME", "GROK_CLAUDE_SKILLS_ENABLED")
+    env = {key: value for key, value in os.environ.items() if key not in dropped}
     env["HOME"] = str(home)
     env["NO_COLOR"] = "1"
     return env
@@ -36,11 +39,14 @@ class CliTest(unittest.TestCase):
     def tearDown(self) -> None:
         self._tmp.cleanup()
 
-    def run_cli(self, *args: str) -> subprocess.CompletedProcess:
+    def run_cli(self, *args: str, extra_env: dict | None = None) -> subprocess.CompletedProcess:
+        env = env_for(self.home)
+        if extra_env:
+            env.update(extra_env)
         return subprocess.run(
             [sys.executable, str(SCRIPT), *args],
             cwd=REPO,
-            env=env_for(self.home),
+            env=env,
             capture_output=True,
             text=True,
             stdin=subprocess.DEVNULL,
@@ -100,7 +106,7 @@ class InstallCliTest(CliTest):
         self.assertEqual(second.returncode, 0, second.stderr)
         self.assertEqual(self.linked(self.opencode / "skills"), [])
         self.assertEqual(self.linked(self.opencode / "commands"), ["make-plan.md", "research-topic.md"])
-        self.assertIn("reads 3 skill(s) from", second.stdout)
+        self.assertIn("opencode: 3 skill(s) not copied to", second.stdout)
         self.assertEqual(self.status()["harnesses"]["opencode"]["skill/make-plan"]["via"], "claude")
         table = self.run_cli("--status", "--harness", "opencode", "--offline")
         self.assertIn("= via Claude Code", table.stdout)
@@ -108,6 +114,78 @@ class InstallCliTest(CliTest):
         removed = self.run_cli("--uninstall", "--harness", "claude", "--offline")
         self.assertEqual(removed.returncode, 0, removed.stderr)
         self.assertIn("Warning: opencode read skill make-plan from Claude Code", removed.stdout)
+
+    def test_grok_sharing_note_comes_after_the_plan_and_before_done(self) -> None:
+        result = self.run_cli("--yes", "--harness", "claude,grok", "--skills", "make-plan", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        lines = result.stdout.splitlines()
+        note = "Grok CLI: 3 skill(s) not copied to"
+        self.assertTrue(any(note in line for line in lines), result.stdout)
+        note_at = next(index for index, line in enumerate(lines) if note in line)
+        last_link = max(index for index, line in enumerate(lines) if line.strip().startswith("link "))
+        done_at = next(index for index, line in enumerate(lines) if line.startswith("Done."))
+        self.assertLess(last_link, note_at)
+        self.assertLess(note_at, done_at)
+
+    def test_grok_copies_when_the_claude_switch_is_off_and_says_why(self) -> None:
+        result = self.run_cli(
+            "--yes", "--harness", "claude,grok", "--skills", "make-plan", "--offline",
+            extra_env={"GROK_CLAUDE_SKILLS_ENABLED": "false"},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        skills = ["make-plan", "plans-convention", "research-topic"]
+        self.assertEqual(self.linked(self.claude / "skills"), skills)
+        self.assertEqual(self.linked(self.home / ".grok" / "skills"), skills)
+        expected = (
+            f"Grok CLI: 3 skill(s) copied to {self.home / '.grok' / 'skills'}; "
+            f"it does not read {self.home / '.claude' / 'skills'} "
+            "(GROK_CLAUDE_SKILLS_ENABLED=false)."
+        )
+        self.assertIn(expected, result.stdout)
+
+    def test_grok_home_holds_the_install_and_the_switch(self) -> None:
+        grok_home = self.home / "elsewhere" / "grok"
+        config = grok_home / "config.toml"
+        config.parent.mkdir(parents=True)
+        config.write_text("[compat.claude]\nskills = false\n", encoding="utf-8")
+        result = self.run_cli(
+            "--yes", "--harness", "claude,grok", "--skills", "make-plan", "--offline",
+            extra_env={"GROK_HOME": str(grok_home)},
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        skills = ["make-plan", "plans-convention", "research-topic"]
+        self.assertEqual(self.linked(grok_home / "skills"), skills)
+        self.assertFalse((self.home / ".grok").exists())
+        self.assertIn(f"(compat.claude.skills = false in {config}).", result.stdout)
+
+    def test_grok_alone_on_an_empty_home_prints_no_sharing_line(self) -> None:
+        result = self.run_cli("--yes", "--harness", "grok", "--skills", "make-plan", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("skill(s) not copied", result.stdout)
+        self.assertNotIn("skill(s) copied", result.stdout)
+
+    def test_grok_alone_links_the_closure_and_no_wrappers(self) -> None:
+        result = self.run_cli("--yes", "--harness", "grok", "--skills", "make-plan", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            self.linked(self.home / ".grok" / "skills"),
+            ["make-plan", "plans-convention", "research-topic"],
+        )
+        self.assertFalse((self.home / ".grok" / "commands").exists())
+
+    def test_claude_and_grok_share_skills_and_status_names_claude(self) -> None:
+        result = self.run_cli("--yes", "--harness", "claude,grok", "--skills", "make-plan", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        skills = ["make-plan", "plans-convention", "research-topic"]
+        self.assertEqual(self.linked(self.claude / "skills"), skills)
+        self.assertEqual(self.linked(self.home / ".grok" / "skills"), [])
+        table = self.run_cli("--status", "--offline")
+        self.assertEqual(table.returncode, 0, table.stderr)
+        lines = table.stdout.splitlines()
+        header = next(line for line in lines if line.startswith("item"))
+        row = next(line for line in lines if line.startswith("skill/make-plan"))
+        cell = row[header.index("Grok CLI"):]
+        self.assertTrue(cell.startswith("= via Claude Code"), cell)
 
     def test_copy_status_modified_skip_and_force(self) -> None:
         args = ("--yes", "--harness", "opencode", "--skills", "make-plan", "--mode", "copy", "--offline")

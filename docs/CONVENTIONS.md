@@ -1,7 +1,7 @@
 # Conventions
 
 How skills, commands and agents are written in this repository so the same
-files work in opencode, Claude Code and Antigravity CLI.
+files work in opencode, Claude Code, Antigravity CLI and Grok CLI.
 
 ## Skills
 
@@ -87,6 +87,8 @@ pass.
 - **opencode**: skills are model-invoked only, so every user-invocable skill
   gets a thin wrapper at `commands/<name>.md` so the user can also run
   `/name`.
+- **Grok CLI**: the skill itself is already `/<name>`. It gets no wrapper: a
+  file in `commands/` would become a second skill with the same name.
 
 Wrapper template:
 
@@ -103,15 +105,15 @@ or refreshes them from each skill's description, and the validator fails if
 one is missing or out of date.
 
 `commands/` is opencode-only: the installer puts it into opencode and not
-into Claude Code or Antigravity CLI, where wrappers would collide with the
-skill's own `/name`.
+into Claude Code, Antigravity CLI or Grok CLI, where wrappers would collide
+with the skill's own `/name`.
 
 ## Agents
 
 There are none yet: skills keep their subagent prompts as briefs (see above).
-If a standalone agent is ever added (only opencode and Claude Code support
-the `agents/<name>.md` format; Antigravity CLI wants `agents/<name>/agent.md`,
-so the installer skips agents there):
+If a standalone agent is ever added (opencode, Claude Code and Grok CLI use
+the same `agents/<name>.md` format; Antigravity CLI wants
+`agents/<name>/agent.md`, so the installer skips agents there):
 
 - One file per agent: `agents/<name>.md`; the body is the agent's prompt.
 - Frontmatter keeps the common minimum: `name` and `description`. Claude Code

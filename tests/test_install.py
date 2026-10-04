@@ -28,7 +28,8 @@ class InstallTest(unittest.TestCase):
         self._tmp.cleanup()
 
     def run_install(self, *args: str) -> subprocess.CompletedProcess:
-        env = {k: v for k, v in os.environ.items() if k != "XDG_CONFIG_HOME"}
+        dropped = ("XDG_CONFIG_HOME", "GROK_HOME", "GROK_CLAUDE_SKILLS_ENABLED")
+        env = {k: v for k, v in os.environ.items() if k not in dropped}
         env["HOME"] = str(self.home)
         return subprocess.run(
             ["bash", str(SCRIPT), *args], env=env, capture_output=True, text=True, check=False
@@ -55,6 +56,16 @@ class InstallTest(unittest.TestCase):
         self.assertEqual(self.linked(self.opencode / "commands"), self.commands)
         self.assertFalse((self.claude / "skills").exists())
 
+    def test_grok_gets_skills_but_no_command_wrappers(self) -> None:
+        result = self.run_install("grok")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        grok = self.home / ".grok"
+        self.assertEqual(self.linked(grok / "skills"), self.skills)
+        self.assertEqual(self.linked(grok / "commands"), [])
+        for name in self.skills:
+            target = (grok / "skills" / name).resolve()
+            self.assertEqual(target, (REPO / "skills" / name).resolve())
+
     def test_antigravity_gets_skills_but_no_command_wrappers(self) -> None:
         result = self.run_install("antigravity")
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -73,7 +84,7 @@ class InstallTest(unittest.TestCase):
 
         removed = self.run_install("--uninstall", "all")
         self.assertEqual(removed.returncode, 0, removed.stderr)
-        for folder in (self.claude, self.opencode, self.antigravity):
+        for folder in (self.claude, self.opencode, self.antigravity, self.home / ".grok"):
             for sub in ("skills", "agents", "commands"):
                 self.assertEqual(self.linked(folder / sub), [], f"{folder / sub}")
 

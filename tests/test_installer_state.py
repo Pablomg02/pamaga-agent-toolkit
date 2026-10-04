@@ -95,7 +95,7 @@ class HarnessTest(unittest.TestCase):
     def test_user_scope_defaults_under_home(self) -> None:
         home = self.root / "home"
         harnesses = all_harnesses(env={"HOME": str(home)})
-        self.assertEqual([h.id for h in harnesses], ["opencode", "claude", "antigravity"])
+        self.assertEqual([h.id for h in harnesses], ["opencode", "claude", "antigravity", "grok"])
         self.assertEqual(harnesses[0].base, home / ".config" / "opencode")
         self.assertEqual(harnesses[1].base, home / ".claude")
         self.assertEqual(harnesses[2].base, home / ".gemini" / "config")
@@ -134,16 +134,18 @@ class HarnessTest(unittest.TestCase):
             all_harnesses(scope="galaxy", env={})
 
     def test_labels_capabilities_and_restart_hints(self) -> None:
-        opencode, claude, antigravity = all_harnesses(env={"HOME": str(self.root / "home")})
+        opencode, claude, antigravity, grok = all_harnesses(env={"HOME": str(self.root / "home")})
         self.assertEqual((opencode.label, opencode.binary), ("opencode", "opencode"))
         self.assertTrue(opencode.supports_commands)
         self.assertEqual((claude.label, claude.binary), ("Claude Code", "claude"))
         self.assertFalse(claude.supports_commands)
         self.assertEqual((antigravity.label, antigravity.binary), ("Antigravity CLI", "agy"))
         self.assertFalse(antigravity.supports_commands)
-        self.assertTrue(opencode.supports_agents and claude.supports_agents)
+        self.assertEqual((grok.label, grok.binary), ("Grok CLI", "grok"))
+        self.assertFalse(grok.supports_commands)
+        self.assertTrue(opencode.supports_agents and claude.supports_agents and grok.supports_agents)
         self.assertFalse(antigravity.supports_agents)
-        for harness in (opencode, claude, antigravity):
+        for harness in (opencode, claude, antigravity, grok):
             self.assertTrue(harness.restart_hint)
 
     def test_shared_skills_differ_by_scope(self) -> None:
@@ -155,6 +157,125 @@ class HarnessTest(unittest.TestCase):
         self.assertEqual(project["opencode"].skills_from, ("claude", "antigravity"))
         self.assertEqual(user["claude"].skills_from, ())
         self.assertEqual(project["antigravity"].skills_from, ())
+
+    def test_grok_dirs_and_shared_skills(self) -> None:
+        home = self.root / "home"
+        project = self.root / "project"
+        user = {h.id: h for h in all_harnesses(env={"HOME": str(home)})}
+        scoped = {
+            h.id: h for h in all_harnesses(scope="project", project=project, env={"HOME": str(home)})
+        }
+        grok = user["grok"]
+        self.assertEqual(grok.base, home / ".grok")
+        self.assertEqual(scoped["grok"].base, project / ".grok")
+        self.assertEqual(grok.label, "Grok CLI")
+        self.assertEqual(grok.binary, "grok")
+        self.assertFalse(grok.supports_commands)
+        self.assertTrue(grok.supports_agents)
+        self.assertEqual(grok.skills_from, ("claude",))
+        self.assertEqual(scoped["grok"].skills_from, ("claude", "antigravity"))
+        self.assertEqual(grok.skills_from_disabled, ())
+        self.assertEqual(scoped["grok"].skills_from_disabled, ())
+        self.assertEqual(
+            grok.restart_hint,
+            "Grok CLI reloads skills on its own; restart it if a change does not show up.",
+        )
+
+    def test_grok_env_switch_drops_claude(self) -> None:
+        home = self.root / "home"
+        project = self.root / "project"
+        for value in ("false", "FALSE", "0", "no", "off"):
+            with self.subTest(value=value):
+                env = {"HOME": str(home), "GROK_CLAUDE_SKILLS_ENABLED": value}
+                user = {h.id: h for h in all_harnesses(env=env)}
+                scoped = {
+                    h.id: h
+                    for h in all_harnesses(scope="project", project=project, env=env)
+                }
+                self.assertEqual(user["grok"].skills_from, ())
+                self.assertEqual(scoped["grok"].skills_from, ("antigravity",))
+                self.assertEqual(
+                    user["grok"].skills_from_disabled,
+                    (("claude", f"GROK_CLAUDE_SKILLS_ENABLED={value}"),),
+                )
+        # A true env value wins over a config file that says false.
+        config = home / ".grok" / "config.toml"
+        write(config, "[compat.claude]\nskills = false\n")
+        env = {"HOME": str(home), "GROK_CLAUDE_SKILLS_ENABLED": "true"}
+        grok = {h.id: h for h in all_harnesses(env=env)}["grok"]
+        self.assertEqual(grok.skills_from, ("claude",))
+        self.assertEqual(grok.skills_from_disabled, ())
+
+    def test_grok_config_switch(self) -> None:
+        home = self.root / "home"
+        config = home / ".grok" / "config.toml"
+        off = {
+            "under the table": "[compat.claude]\nskills = false\n",
+            "dotted under compat": "[compat]\nclaude.skills = false\n",
+            "before any table": "compat.claude.skills = false\n",
+            "spaces around dots": "[ compat . claude ]\nskills = false\n",
+        }
+        reason = f"compat.claude.skills = false in {home / '.grok/config.toml'}"
+        for label, text in off.items():
+            with self.subTest(off=label):
+                write(config, text)
+                grok = {h.id: h for h in all_harnesses(env={"HOME": str(home)})}["grok"]
+                self.assertEqual(grok.skills_from, ())
+                self.assertEqual(grok.skills_from_disabled, (("claude", reason),))
+        on = {
+            "table true": "[compat.claude]\nskills = true\n",
+            "dotted true": "[compat]\nclaude.skills = true\n",
+            "root true": "compat.claude.skills = true\n",
+            "commented out": "[compat.claude]\n# skills = false\n",
+            "another table": "[compat.cursor]\nskills = false\n",
+            "inline table": "[compat]\nclaude = { skills = false }\n",
+        }
+        for label, text in on.items():
+            with self.subTest(on=label):
+                write(config, text)
+                grok = {h.id: h for h in all_harnesses(env={"HOME": str(home)})}["grok"]
+                self.assertEqual(grok.skills_from, ("claude",))
+                self.assertEqual(grok.skills_from_disabled, ())
+        config.unlink()
+        grok = {h.id: h for h in all_harnesses(env={"HOME": str(home)})}["grok"]
+        self.assertEqual(grok.skills_from, ("claude",))
+        self.assertEqual(grok.skills_from_disabled, ())
+
+    def test_opencode_ignores_the_grok_switch(self) -> None:
+        home = self.root / "home"
+        env = {"HOME": str(home), "GROK_CLAUDE_SKILLS_ENABLED": "false"}
+        user = {h.id: h for h in all_harnesses(env=env)}
+        self.assertEqual(user["opencode"].skills_from, ("claude",))
+        self.assertEqual(user["opencode"].skills_from_disabled, ())
+        self.assertEqual(user["grok"].skills_from, ())
+
+    def test_grok_home_moves_the_base_and_the_config(self) -> None:
+        home = self.root / "home"
+        grok_home = self.root / "grok-home"
+        project = self.root / "project"
+        env = {"HOME": str(home), "GROK_HOME": str(grok_home)}
+        grok = {h.id: h for h in all_harnesses(env=env)}["grok"]
+        self.assertEqual(grok.base, grok_home)
+        scoped = {h.id: h for h in all_harnesses(scope="project", project=project, env=env)}
+        self.assertEqual(scoped["grok"].base, project / ".grok")
+        # The switch is read from $GROK_HOME/config.toml at both scopes, and
+        # a file left in ~/.grok no longer counts.
+        write(home / ".grok" / "config.toml", "[compat.claude]\nskills = false\n")
+        grok = {h.id: h for h in all_harnesses(env=env)}["grok"]
+        self.assertEqual(grok.skills_from, ("claude",))
+        config = grok_home / "config.toml"
+        write(config, "[compat.claude]\nskills = false\n")
+        reason = f"compat.claude.skills = false in {config}"
+        grok = {h.id: h for h in all_harnesses(env=env)}["grok"]
+        self.assertEqual(grok.skills_from_disabled, (("claude", reason),))
+        scoped = {h.id: h for h in all_harnesses(scope="project", project=project, env=env)}
+        self.assertEqual(scoped["grok"].skills_from, ("antigravity",))
+        self.assertEqual(scoped["grok"].skills_from_disabled, (("claude", reason),))
+        # An empty GROK_HOME is ignored; the other harnesses never move.
+        everyone = {h.id: h for h in all_harnesses(env={"HOME": str(home), "GROK_HOME": ""})}
+        self.assertEqual(everyone["grok"].base, home / ".grok")
+        moved = {h.id: h for h in all_harnesses(env=env)}
+        self.assertEqual(moved["claude"].base, home / ".claude")
 
     def test_dir_for(self) -> None:
         harness = all_harnesses(env={"HOME": str(self.root / "home")})[0]

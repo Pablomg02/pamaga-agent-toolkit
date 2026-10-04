@@ -27,10 +27,13 @@ from installer.actions import (  # noqa: E402
     Action,
     Result,
     Selection,
+    SharingNote,
     apply_actions,
+    describe_sharing,
     plan_actions,
     shared_skill_losses,
     shared_source,
+    sharing_notes,
 )
 from installer.catalog import Catalog, Item, content_hash, list_files, load_catalog  # noqa: E402
 from installer.harnesses import all_harnesses  # noqa: E402
@@ -627,6 +630,101 @@ class PlanningTableTest(ToolkitFixture):
         installs = {(a.harness_id, a.kind, a.name) for a in actions if a.op == "install"}
         self.assertIn(("opencode", "skill", "alpha"), installs)
         self.assertIn(("antigravity", "skill", "alpha"), installs)
+
+    def test_grok_shares_a_selected_claude_skill(self) -> None:
+        actions = self.plan(self.select(harnesses=("claude", "grok"), skills={"alpha"}))
+        installs = {(a.harness_id, a.op) for a in actions if a.kind == "skill" and a.op == "install"}
+        self.assertEqual(installs, {("claude", "install")})
+        self.assertFalse(any(a.harness_id == "grok" and a.kind == "skill" for a in actions))
+
+    def test_grok_alone_reads_claude_or_installs_into_its_own_dir(self) -> None:
+        scans = {"claude": {"skill/alpha": self.on_disk(self.claude, self.alpha)}}
+        shared = self.plan(self.select(harnesses=("grok",), skills={"alpha"}), scans)
+        self.assertFalse(any(a.harness_id == "grok" and a.kind == "skill" and a.op == "install" for a in shared))
+        grok = self.by_id["grok"]
+        own = self.action_for(self.plan(self.select(harnesses=("grok",), skills={"alpha"})), "skill/alpha", "grok")
+        self.assertEqual(own.op, "install")
+        self.assertEqual(own.target, grok.base / "skills" / "alpha")
+
+    def test_grok_gets_agents_and_never_command_wrappers(self) -> None:
+        actions = self.plan(self.select(
+            harnesses=("grok",), skills={"alpha"}, agents={"helper"}, commands=True,
+        ))
+        self.assertFalse(any(a.kind == "command" for a in actions))
+        agents = [(a.harness_id, a.op, a.name) for a in actions if a.kind == "agent"]
+        self.assertEqual(agents, [("grok", "install", "helper")])
+
+    def test_grok_installs_its_own_copy_when_the_claude_switch_is_off(self) -> None:
+        env = {"HOME": str(self.home), "GROK_CLAUDE_SKILLS_ENABLED": "false"}
+        harnesses = all_harnesses(scope="user", env=env)
+        selection = self.select(harnesses=("claude", "grok"), skills={"alpha"})
+        actions = plan_actions(self.catalog, harnesses, {}, selection, stub_versions())
+        installs = {
+            (a.harness_id, a.name) for a in actions if a.kind == "skill" and a.op == "install"
+        }
+        self.assertEqual(installs, {("claude", "alpha"), ("grok", "alpha")})
+
+    def test_project_scope_grok_shares_the_antigravity_skills(self) -> None:
+        project = self.root / "project"
+        harnesses = all_harnesses(scope="project", project=project, env={"HOME": str(self.home)})
+        selection = self.select(harnesses=("antigravity", "grok"), skills={"alpha"})
+        actions = plan_actions(self.catalog, harnesses, {}, selection, stub_versions())
+        installs = {
+            (a.harness_id, a.name) for a in actions if a.kind == "skill" and a.op == "install"
+        }
+        self.assertIn(("antigravity", "alpha"), installs)
+        self.assertNotIn(("grok", "alpha"), installs)
+
+    def test_sharing_notes_say_when_grok_reads_claude_and_when_it_cannot(self) -> None:
+        both = self.select(harnesses=("claude", "grok"), skills={"alpha"})
+        alone = self.select(harnesses=("grok",), skills={"alpha"})
+        wanted = {"alpha"}
+        self.assertEqual(
+            sharing_notes(self.harnesses, {}, both, wanted),
+            [SharingNote("grok", "claude", 1, True)],
+        )
+        self.assertEqual(sharing_notes(self.harnesses, {}, alone, wanted), [])
+        scans = {"claude": {"skill/alpha": self.on_disk(self.claude, self.alpha)}}
+        self.assertEqual(
+            sharing_notes(self.harnesses, scans, alone, wanted),
+            [SharingNote("grok", "claude", 1, True)],
+        )
+        env = {"HOME": str(self.home), "GROK_CLAUDE_SKILLS_ENABLED": "false"}
+        harnesses = all_harnesses(scope="user", env=env)
+        self.assertEqual(
+            sharing_notes(harnesses, {}, both, wanted),
+            [SharingNote("grok", "claude", 1, False, "GROK_CLAUDE_SKILLS_ENABLED=false")],
+        )
+        self.assertEqual(sharing_notes(harnesses, {}, alone, wanted), [])
+
+    def test_describe_sharing_states_the_paths_and_the_reason(self) -> None:
+        grok = self.by_id["grok"]
+        shared = describe_sharing(SharingNote("grok", "claude", 2, True), self.harnesses)
+        self.assertEqual(
+            shared,
+            f"Grok CLI: 2 skill(s) not copied to {grok.dir_for('skill')}; "
+            f"it already reads them from {self.claude.dir_for('skill')} (Claude Code).",
+        )
+        copied = describe_sharing(
+            SharingNote("grok", "claude", 2, False, "GROK_CLAUDE_SKILLS_ENABLED=false"),
+            self.harnesses,
+        )
+        self.assertEqual(
+            copied,
+            f"Grok CLI: 2 skill(s) copied to {grok.dir_for('skill')}; "
+            f"it does not read {self.claude.dir_for('skill')} (GROK_CLAUDE_SKILLS_ENABLED=false).",
+        )
+
+    def test_removing_a_claude_skill_warns_when_grok_read_it(self) -> None:
+        grok = self.by_id["grok"]
+        scans = {
+            "claude": {"skill/alpha": self.on_disk(self.claude, self.alpha)},
+            "grok": {"agent/helper": self.placed(grok, self.helper, Status.LINKED)},
+        }
+        uninstall = self.plan(self.select(harnesses=("claude",), prune=True), scans)
+        self.assertEqual(
+            shared_skill_losses(self.harnesses, scans, uninstall), [("grok", "alpha", "claude")]
+        )
 
     def test_project_scope_opencode_shares_the_antigravity_skills(self) -> None:
         project = self.root / "project"

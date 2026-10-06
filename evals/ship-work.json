@@ -18,11 +18,11 @@
     {
       "id": 2,
       "prompt": "Commit, push and open a draft PR for plan 0042.",
-      "expected_output": "On main, the agent proposes a branch named after the work, commits referencing 0042, pushes with upstream, and opens a draft PR whose description is built from plan 0042 and the checks that actually ran.",
+      "expected_output": "On main, the agent asks whether to create a branch named after the work (suggesting one) or push to main, then commits referencing 0042, pushes with upstream, and opens a draft PR whose description is built from plan 0042 and the checks that actually ran.",
       "files": [],
       "expectations": [
         "Does not ask how far to go, since the user said it",
-        "Creates a branch instead of pushing to main",
+        "Asks before committing whether to create a new branch (with a suggested name) or push to main, and does neither until the user chooses",
         "The commit message references 0042",
         "Opens the PR as a draft with gh, or gives the compare URL and text if gh is unavailable",
         "The PR description includes Summary, How it was verified and Plan 0042",
@@ -37,6 +37,17 @@
       "expectations": [
         "Does not force-push",
         "Asks the user before rebasing or merging"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Commit this. (The current branch is main.)",
+      "expected_output": "The agent commits on main without creating or switching branches, and does not push.",
+      "files": [],
+      "expectations": [
+        "Does not create or switch branches",
+        "Commits on main",
+        "Does not push"
       ]
     }
   ],

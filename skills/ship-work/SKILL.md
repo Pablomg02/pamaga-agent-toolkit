@@ -44,11 +44,16 @@ genuinely open: the branch (see step 3), draft or ready, the target branch.
 
 ## 3. Commit
 
-- **Branch.** For *commit only*, commit where the user is. If a push or PR is
-  wanted and the current branch is the default branch (`main`, `master`),
-  propose a new branch named after the work (`0042-add-search`,
-  `fix-empty-export`) and create it before committing; never push straight
-  to the default branch unless the user explicitly says so.
+- **Branch.** If the repository's instructions (`AGENTS.md`, `CLAUDE.md`,
+  `CONTRIBUTING.md`) say which branch to commit or push to, or when to
+  create one, follow them. Otherwise: for *commit only*, commit on the
+  current branch, even when it is the default branch (`main`, `master`):
+  the user chose the branch before starting the work, so do not create or
+  switch branches. If a push or PR is wanted and the
+  current branch is the default branch, ask before committing: create a new
+  branch named after the work (suggest one, such as `0042-add-search` or
+  `fix-empty-export`), or push straight to the default branch. Do neither
+  until the user chooses.
 - **Grouping.** One commit per logical change. If the diff mixes independent
   changes, propose how to split them; otherwise one commit is fine.
 - **Message.** Follow the repository's style. Without one: a short
@@ -114,4 +119,5 @@ one's.
 - Force-pushing, `--no-verify`, or amending a commit that was already
   pushed, without the user asking.
 - A PR description that claims tests passed when they were not run.
-- Pushing straight to `main`.
+- Creating or switching branches without the user having chosen it.
+- Pushing straight to the default branch without the user asking.
